@@ -6,6 +6,7 @@ Run with: ``uvicorn app.main:app --reload`` (dev) or via the systemd unit descri
 
 from __future__ import annotations
 
+import asyncio
 import platform
 from contextlib import asynccontextmanager
 
@@ -23,6 +24,7 @@ from app.api.routes import (
     preferences,
     properties,
     recommendations,
+    voice,
 )
 from app.bootstrap import bootstrap
 from app.core.config import get_settings
@@ -33,6 +35,7 @@ from app.db.base import SessionLocal
 from app.ml.valuation_service import get_valuation_service
 from app.providers.listing.factory import get_listing_provider
 from app.repositories.property_repository import PropertyRepository
+from app.scraper.scheduler import scrape_forever
 
 logger = get_logger(__name__)
 
@@ -65,7 +68,12 @@ async def lifespan(app: FastAPI):  # noqa: ANN201, ARG001
             "build sha": settings.homerun_build_sha,
         }
     )
+    scrape_task = None
+    if settings.listing_provider == "scraped" and settings.scrape_enabled:
+        scrape_task = asyncio.create_task(scrape_forever(settings), name="propertyguru-scraper")
     yield
+    if scrape_task is not None:
+        scrape_task.cancel()
     logger.info("homerun_backend_shutdown")
 
 
@@ -119,6 +127,7 @@ def create_app() -> FastAPI:
         feedback.router,
         finance.router,
         handoffs.router,
+        voice.router,
     ]
     for router in api_routers:
         app.include_router(router, prefix="/api")

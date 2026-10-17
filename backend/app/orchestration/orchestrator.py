@@ -83,6 +83,7 @@ class RecommendationOrchestrator:
         valuation_agent: ValuationAgent,
         matching_agent: MatchingDecisionAgent,
         source_mode: str,
+        inventory_provider: str | None = None,
     ) -> None:
         self._property_repo = property_repo
         self._recommendation_repo = recommendation_repo
@@ -90,6 +91,7 @@ class RecommendationOrchestrator:
         self._valuation_agent = valuation_agent
         self._matching_agent = matching_agent
         self._source_mode = source_mode
+        self._inventory_provider = inventory_provider
 
     def produce_recommendations(
         self,
@@ -108,7 +110,7 @@ class RecommendationOrchestrator:
         )
 
         # --- retrieve ---
-        inventory = self._property_repo.list_all()
+        inventory = self._property_repo.list_all(provider=self._inventory_provider)
         logger.info(
             "[ORCHESTRATOR] request_id=%s stage=retrieve n_inventory=%d source_mode=%s",
             request_id, len(inventory), self._source_mode,

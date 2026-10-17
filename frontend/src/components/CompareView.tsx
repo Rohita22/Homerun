@@ -33,7 +33,7 @@ export function CompareView({ listingIds, onBack }: Props) {
   return (
     <section className="card">
       <button className="ghost" onClick={onBack}>
-        ← Back to results
+        ← Back
       </button>
       <h2>Compare</h2>
       {error && <p className="error">{error}</p>}

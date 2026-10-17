@@ -108,11 +108,23 @@ def get_handoff_service(
 
 
 def get_source_mode(settings: Settings = Depends(get_app_settings)) -> str:
-    return (
-        SourceMode.LIVE_AUTHORIZED.value
-        if settings.listing_provider == "authorized"
-        else SourceMode.DEMO_FIXTURE.value
-    )
+    return {
+        "authorized": SourceMode.LIVE_AUTHORIZED.value,
+        "scraped": SourceMode.LIVE_SCRAPED.value,
+    }.get(settings.listing_provider, SourceMode.DEMO_FIXTURE.value)
+
+
+# ``properties.provider`` value of the rows each configured listing provider owns, so one
+# inventory never mixes e.g. demo fixtures with scraped listings sitting in the same table.
+INVENTORY_PROVIDER = {
+    "authorized": "authorized_parse_bot",
+    "scraped": "propertyguru_scraper",
+    "demo_fixture": "demo_fixture",
+}
+
+
+def get_inventory_provider(settings: Settings = Depends(get_app_settings)) -> str:
+    return INVENTORY_PROVIDER.get(settings.listing_provider, "demo_fixture")
 
 
 def get_orchestrator(
@@ -122,6 +134,7 @@ def get_orchestrator(
     valuation_agent: ValuationAgent = Depends(get_valuation_agent),
     matching_agent: MatchingDecisionAgent = Depends(get_matching_decision_agent),
     source_mode: str = Depends(get_source_mode),
+    inventory_provider: str = Depends(get_inventory_provider),
 ) -> RecommendationOrchestrator:
     return RecommendationOrchestrator(
         property_repo=property_repo,
@@ -130,4 +143,5 @@ def get_orchestrator(
         valuation_agent=valuation_agent,
         matching_agent=matching_agent,
         source_mode=source_mode,
+        inventory_provider=inventory_provider,
     )

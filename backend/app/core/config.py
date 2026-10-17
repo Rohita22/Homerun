@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     homerun_database_url: str = f"sqlite:///{(BACKEND_ROOT / 'data' / 'homerun.db').as_posix()}"
 
     # --- Listing provider (Dependency Inversion: orchestrator only knows the interface) ---
-    listing_provider: str = "demo_fixture"  # "demo_fixture" | "authorized"
+    listing_provider: str = "demo_fixture"  # "demo_fixture" | "authorized" | "scraped"
     parse_bot_base_url: str | None = None
     parse_bot_api_key: str | None = None
     # Bounded so a live sync has a predictable worst-case latency instead of scraping the whole
@@ -45,10 +45,29 @@ class Settings(BaseSettings):
     # `--reload` restart in dev) while the cached catalog is still within this TTL.
     parse_bot_sync_ttl_minutes: int = 30
 
+    # --- Playwright PropertyGuru scraper (LISTING_PROVIDER=scraped) ---
+    # Runs inside the API process on a timer (and via ``python -m app.scraper``); results land in
+    # the same ``properties`` table the rest of the app already reads.
+    scrape_enabled: bool = True
+    scrape_interval_hours: float = 12.0
+    # Comma separated ``<propertyguru path>:<max pages>`` pairs, 20 listings per page.
+    scrape_targets: str = "hdb-for-sale:30,condo-for-sale:20"
+    scrape_delay_seconds: float = 8.0  # polite pause between page loads (+ random jitter)
+    scrape_headless: bool = True
+    scrape_max_retries: int = 3
+    # A listing not re-seen for this long is marked inactive (it fell out of the crawl window or
+    # was taken down). Kept well above the interval so one failed run never wipes the catalog.
+    scrape_stale_after_hours: float = 72.0
+
     # --- LLM provider ---
     llm_provider: str = "template"  # "template" | "gemini" | "groq"
     gemini_api_key: str | None = None
     groq_api_key: str | None = None
+
+    # --- Voice AI (Gemini Live API, proxied through /api/voice/ws so the key stays server-side) ---
+    gemini_live_model: str = "gemini-3.8-live"
+    gemini_live_fallback_model: str = "gemini-3.1-flash-live-preview"
+    gemini_live_voice: str = "Puck"
 
     # --- Session / retention (PRD section 9: Security and privacy) ---
     session_ttl_hours: int = 24
@@ -63,6 +82,17 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.homerun_cors_origins.split(",") if origin.strip()]
+
+    @property
+    def scrape_target_list(self) -> list[tuple[str, int]]:
+        targets: list[tuple[str, int]] = []
+        for part in self.scrape_targets.split(","):
+            part = part.strip()
+            if not part:
+                continue
+            path, _, pages = part.partition(":")
+            targets.append((path.strip("/ "), int(pages) if pages.strip() else 1))
+        return targets
 
     @property
     def is_sqlite(self) -> bool:

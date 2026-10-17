@@ -30,6 +30,7 @@ class ListingStatus(StrEnum):
 
 class SourceMode(StrEnum):
     LIVE_AUTHORIZED = "live_authorized"
+    LIVE_SCRAPED = "live_scraped"
     DEMO_FIXTURE = "demo_fixture"
 
 

@@ -1,0 +1,16 @@
+# OS / editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Local runtime state written by start.sh
+.run/
+
+# Claude Code local files
+.claude/
+
+# Secrets (never commit; use .env.example)
+.env
+.env.*
+!.env.example

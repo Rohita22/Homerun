@@ -12,6 +12,7 @@ from app.core.config import Settings, get_settings
 from app.domain.interfaces.listing_provider import ListingProvider
 from app.providers.listing.authorized_provider import AuthorizedListingProvider
 from app.providers.listing.demo_fixture_provider import DemoFixtureProvider
+from app.providers.listing.scraped_provider import ScrapedListingProvider
 
 
 def build_listing_provider(settings: Settings) -> ListingProvider:
@@ -23,6 +24,8 @@ def build_listing_provider(settings: Settings) -> ListingProvider:
             include_rent=settings.parse_bot_include_rent,
             detail_enrich_limit=settings.parse_bot_detail_enrich_limit,
         )
+    if settings.listing_provider == "scraped":
+        return ScrapedListingProvider()
     return DemoFixtureProvider(fixtures_dir=settings.fixtures_dir)
 
 

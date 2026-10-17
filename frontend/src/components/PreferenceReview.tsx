@@ -32,6 +32,7 @@ export function PreferenceReview({ sessionId, profile, onSaved }: Props) {
       const saved = await api.putPreferences(sessionId, {
         transaction_type: form.transaction_type,
         property_type: form.property_type,
+        property_types: form.property_types ?? [],
         max_price_sgd: form.max_price_sgd,
         min_price_sgd: form.min_price_sgd,
         min_bedrooms: form.min_bedrooms,

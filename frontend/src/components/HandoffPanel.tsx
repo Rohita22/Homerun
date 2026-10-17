@@ -48,7 +48,7 @@ export function HandoffPanel({ listingId, onBack }: Props) {
   return (
     <section className="card">
       <button className="ghost" onClick={onBack}>
-        ← Back to results
+        ← Back
       </button>
       <h2>Contact the agent for this listing</h2>
 

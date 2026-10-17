@@ -12,6 +12,7 @@ export interface BuyerProfile {
   session_id: string;
   transaction_type: TransactionType;
   property_type: PropertyType | null;
+  property_types: PropertyType[];
   max_price_sgd: number | null;
   min_price_sgd: number | null;
   min_bedrooms: number | null;
@@ -169,6 +170,7 @@ export interface HealthResponse {
   database: string;
   valuation_model_version: string;
   valuation_model_is_trained: boolean;
+  listings_last_refreshed_at?: string | null;
 }
 
 export interface ApiErrorBody {

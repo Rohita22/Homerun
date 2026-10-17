@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -16,6 +18,7 @@ class HealthResponse(BaseModel):
     database: str
     valuation_model_version: str
     valuation_model_is_trained: bool
+    listings_last_refreshed_at: datetime | None = None
 
 
 class MetricsResponse(BaseModel):

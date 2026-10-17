@@ -178,3 +178,19 @@ class AuditEventRow(Base):
     metadata_redacted_json: Mapped[dict] = mapped_column(JSON, default=dict)
     latency_ms: Mapped[float] = mapped_column(Float, default=0.0)
     timestamp: Mapped[datetime] = mapped_column(default=_now)
+
+
+class ScrapeRunRow(Base):
+    """One execution of the PropertyGuru scraper (audit trail + "last refreshed" source)."""
+
+    __tablename__ = "scrape_runs"
+
+    run_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    started_at: Mapped[datetime] = mapped_column(default=_now, index=True)
+    finished_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    status: Mapped[str] = mapped_column(String, default="running")  # running|ok|partial|failed
+    pages_ok: Mapped[int] = mapped_column(Integer, default=0)
+    pages_failed: Mapped[int] = mapped_column(Integer, default=0)
+    listings_seen: Mapped[int] = mapped_column(Integer, default=0)
+    listings_deactivated: Mapped[int] = mapped_column(Integer, default=0)
+    detail_json: Mapped[dict] = mapped_column(JSON, default=dict)

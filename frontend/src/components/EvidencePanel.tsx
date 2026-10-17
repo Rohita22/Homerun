@@ -25,7 +25,7 @@ export function EvidencePanel() {
           <li>arch: {health.architecture}</li>
           <li>
             listing provider: {health.listing_provider} ({health.listing_provider_healthy ? "healthy" : "down"})
-            {health.listing_provider === "authorized" && (
+            {(health.listing_provider === "authorized" || health.listing_provider === "scraped") && (
               <>
                 {" "}
                 <span className="badge badge-ok" style={{ fontSize: "0.7rem" }}>
@@ -35,6 +35,14 @@ export function EvidencePanel() {
             )}
           </li>
           <li>catalog size: {health.listing_catalog_size}</li>
+          {health.listing_provider === "scraped" && (
+            <li>
+              listings refreshed:{" "}
+              {health.listings_last_refreshed_at
+                ? new Date(health.listings_last_refreshed_at + "Z").toLocaleString()
+                : "first scrape running…"}
+            </li>
+          )}
           <li>llm provider: {health.llm_provider}</li>
           <li>
             valuation model: {health.valuation_model_version} (

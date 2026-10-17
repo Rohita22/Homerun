@@ -21,6 +21,7 @@ from app.db.base import SessionLocal, init_db
 from app.providers.listing.authorized_provider import AuthorizedListingProvider
 from app.providers.listing.demo_fixture_provider import DemoFixtureProvider
 from app.providers.listing.factory import get_listing_provider
+from app.providers.listing.scraped_provider import ScrapedListingProvider
 from app.repositories.property_repository import PropertyRepository
 
 logger = get_logger(__name__)
@@ -75,6 +76,10 @@ def bootstrap() -> None:
                 "links=%d",
                 provider.name, len(listings), len(agents), len(links),
             )
+        elif isinstance(provider, ScrapedListingProvider):
+            # Nothing to sync here: the scraper scheduler (app.scraper.scheduler, started in
+            # main.py's lifespan) fills ``properties`` on its own 12h timer.
+            logger.info("bootstrap_scraped_provider catalog_size=%d", repo.count("propertyguru_scraper"))
         else:
             logger.warning(
                 "bootstrap_skipped_sync provider=%s reason=unknown_provider_type", provider.name

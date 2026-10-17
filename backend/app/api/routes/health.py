@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session as DbSession
 
-from app.api.deps import get_property_repository
+from app.api.deps import INVENTORY_PROVIDER, get_property_repository
 from app.core.config import Settings, get_settings
 from app.core.metrics import get_metrics_collector
 from app.db.base import get_db
@@ -43,11 +43,16 @@ def health(
         architecture=platform.machine() or "unknown",
         listing_provider=provider.name,
         listing_provider_healthy=provider.health(),
-        listing_catalog_size=len(property_repo.list_all()),
+        listing_catalog_size=property_repo.count(
+            INVENTORY_PROVIDER.get(settings.listing_provider, "demo_fixture"), status="active"
+        ),
         llm_provider=settings.llm_provider,
         database=database_status,
         valuation_model_version=valuation_service.version,
         valuation_model_is_trained=valuation_service.is_trained,
+        listings_last_refreshed_at=property_repo.latest_fetched_at(
+            INVENTORY_PROVIDER.get(settings.listing_provider, "demo_fixture")
+        ),
     )
 
 

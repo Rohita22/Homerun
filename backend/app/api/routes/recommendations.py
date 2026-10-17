@@ -14,6 +14,7 @@ from app.api.deps import (
     get_source_mode,
 )
 from app.core.errors import ValidationFailedError
+from app.core.time import utcnow
 from app.domain.entities import BuyerProfile
 from app.orchestration.orchestrator import RecommendationOrchestrator
 from app.repositories.property_repository import PropertyRepository
@@ -72,6 +73,13 @@ def post_recommendations(
     warnings = list(result.warnings)
     if source_mode == "demo_fixture":
         warnings.append("Inventory is demonstration data, not live availability.")
+    if source_mode == "live_scraped":
+        refreshed = property_repo.latest_fetched_at("propertyguru_scraper")
+        age = f"{(utcnow() - refreshed).total_seconds() / 3600:.0f}h ago" if refreshed else "never"
+        warnings.append(
+            f"Listings come from PropertyGuru and were last refreshed {age}; price and "
+            "availability may have changed, so confirm with the agent."
+        )
     if not result.ranked_items:
         warnings.append(
             "No matched inventory for your current hard constraints. Consider relaxing one, "

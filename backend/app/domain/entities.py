@@ -33,6 +33,8 @@ class BuyerProfile(BaseModel):
     session_id: str
     transaction_type: TransactionType = TransactionType.BUY
     property_type: PropertyType | None = None
+    # Additional acceptable types when the buyer picks several; unioned with ``property_type``.
+    property_types: list[PropertyType] = Field(default_factory=list)
     max_price_sgd: float | None = Field(default=None, gt=0)
     min_price_sgd: float | None = Field(default=None, ge=0)
     min_bedrooms: int | None = Field(default=None, ge=0)

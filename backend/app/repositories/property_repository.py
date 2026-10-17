@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session as DbSession
 
 from app.core.time import utcnow
@@ -113,9 +113,42 @@ class PropertyRepository:
             select(func.max(PropertyRow.fetched_at)).where(PropertyRow.provider == provider)
         ).scalar_one_or_none()
 
-    def list_all(self) -> list[PropertyListing]:
-        rows = self._db.execute(select(PropertyRow)).scalars().all()
+    def list_all(self, provider: str | None = None) -> list[PropertyListing]:
+        """All listings, or only those from one ``provider`` (so demo fixtures and live/scraped
+        rows sitting in the same table never get mixed into one inventory)."""
+        stmt = select(PropertyRow)
+        if provider is not None:
+            stmt = stmt.where(PropertyRow.provider == provider)
+        rows = self._db.execute(stmt).scalars().all()
         return [_row_to_entity(r) for r in rows]
+
+    def count(self, provider: str | None = None, status: str | None = None) -> int:
+        stmt = select(func.count()).select_from(PropertyRow)
+        if provider is not None:
+            stmt = stmt.where(PropertyRow.provider == provider)
+        if status is not None:
+            stmt = stmt.where(PropertyRow.status == status)
+        return int(self._db.execute(stmt).scalar_one())
+
+    def deactivate_unseen(self, provider: str, seen_before: datetime) -> int:
+        """Mark a provider's active listings inactive if they were not re-seen since ``seen_before``."""
+        result = self._db.execute(
+            update(PropertyRow)
+            .where(
+                PropertyRow.provider == provider,
+                PropertyRow.status == "active",
+                PropertyRow.fetched_at < seen_before,
+            )
+            .values(status="inactive")
+        )
+        return int(result.rowcount or 0)
+
+    def replace_link(self, link: ListingAgentLink) -> None:
+        """Keep exactly one agent link per listing (``upsert_link`` appends a new row each call)."""
+        self._db.execute(
+            delete(ListingAgentLinkRow).where(ListingAgentLinkRow.listing_id == link.listing_id)
+        )
+        self.upsert_link(link)
 
     def get_by_ids(self, listing_ids: list[str]) -> list[PropertyListing]:
         rows = self._db.execute(

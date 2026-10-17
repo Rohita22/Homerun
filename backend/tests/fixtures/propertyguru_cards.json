@@ -1,0 +1,279 @@
+[
+ {
+  "id": 500255524,
+  "statusCode": "ACT",
+  "typeCode": "SALE",
+  "agent": {
+   "id": 1596,
+   "name": "Test Agent",
+   "license": "R014732C"
+  },
+  "agency": {
+   "id": 2,
+   "name": "ERA REALTY NETWORK PTE LTD"
+  },
+  "psfText": "S$ 642.08 psf",
+  "listingFeatures": [
+   [
+    {
+     "iconName": "bed-o",
+     "text": "2",
+     "dataAutomationId": "listing-card-v2-bedrooms"
+    },
+    {
+     "iconName": "bath-o",
+     "text": "2",
+     "dataAutomationId": "listing-card-v2-bathrooms"
+    }
+   ],
+   {
+    "text": "732 sqft",
+    "dataAutomationId": "listing-card-v2-area"
+   },
+   {
+    "text": "HDB Flat",
+    "dataAutomationId": "listing-card-v2-unit-type"
+   },
+   {
+    "text": "99-year Leasehold",
+    "dataAutomationId": "listing-card-v2-tenure"
+   },
+   {
+    "text": "Built: 1978",
+    "dataAutomationId": "listing-card-v2-build-year"
+   }
+  ],
+  "property": {
+   "newProject": false,
+   "typeCode": "SALE",
+   "typeText": "For Sale",
+   "typeGroup": "H",
+   "subTypeText": "HDB Flat",
+   "isPremiumProjectListing": false,
+   "id": 5312
+  },
+  "fullAddress": "335 Clementi Avenue 2, Buona Vista / West Coast / Clementi New Town",
+  "shortAddress": "Buona Vista / West Coast / Clementi New Town, City & South West (D01-08)",
+  "localizedTitle": "335 Clementi Avenue 2",
+  "price": {
+   "value": 470000,
+   "type": {
+    "code": "NEG",
+    "text": "Negotiable"
+   },
+   "pretty": "S$ 470,000",
+   "currency": "SGD",
+   "localeStringValue": "470000"
+  },
+  "url": "https://www.propertyguru.com.sg/listing/hdb-for-sale-335-clementi-avenue-2-500255524",
+  "postedOn": {
+   "text": "18 Oct 2026",
+   "unix": 1792253986
+  },
+  "bedrooms": 2,
+  "bathrooms": 2,
+  "floorArea": 732,
+  "additionalData": {
+   "tenure": "L99",
+   "areaText": "",
+   "areaCode": "",
+   "districtCode": "D05",
+   "districtText": "Buona Vista / West Coast / Clementi New Town",
+   "regionText": "City & South West (D01-08)",
+   "regionCode": "A"
+  },
+  "mrt": {
+   "nearbyText": "560 m (7 min) from CR17 Clementi MRT",
+   "pill": {
+    "colors": [
+     "#16964F",
+     "#9CD304"
+    ]
+   }
+  }
+ },
+ {
+  "id": 500282252,
+  "statusCode": "ACT",
+  "typeCode": "SALE",
+  "agent": {
+   "id": 901472506,
+   "name": "Patrick Tang Wenhan",
+   "license": "R073411E"
+  },
+  "agency": {
+   "id": 4618,
+   "name": "PROPNEX REALTY PTE. LTD."
+  },
+  "psfText": "S$ 656.57 psf",
+  "listingFeatures": [
+   [
+    {
+     "iconName": "bed-o",
+     "text": "3",
+     "dataAutomationId": "listing-card-v2-bedrooms"
+    },
+    {
+     "iconName": "bath-o",
+     "text": "2",
+     "dataAutomationId": "listing-card-v2-bathrooms"
+    }
+   ],
+   {
+    "text": "990 sqft",
+    "dataAutomationId": "listing-card-v2-area"
+   },
+   {
+    "text": "HDB Flat",
+    "dataAutomationId": "listing-card-v2-unit-type"
+   },
+   {
+    "text": "99-year Leasehold",
+    "dataAutomationId": "listing-card-v2-tenure"
+   },
+   {
+    "text": "Built: 2014",
+    "dataAutomationId": "listing-card-v2-build-year"
+   }
+  ],
+  "property": {
+   "newProject": false,
+   "typeCode": "SALE",
+   "typeText": "For Sale",
+   "typeGroup": "H",
+   "subTypeText": "HDB Flat",
+   "isPremiumProjectListing": false,
+   "id": 22417
+  },
+  "fullAddress": "549A Segar Road, Dairy Farm / Bukit Panjang / Choa Chu Kang",
+  "shortAddress": "Dairy Farm / Bukit Panjang / Choa Chu Kang, West (D22-24)",
+  "localizedTitle": "549A Segar Road",
+  "price": {
+   "value": 650000,
+   "type": {
+    "code": null,
+    "text": null
+   },
+   "pretty": "S$ 650,000",
+   "currency": "SGD",
+   "localeStringValue": "650000"
+  },
+  "url": "https://www.propertyguru.com.sg/listing/hdb-for-sale-549a-segar-road-500282252",
+  "postedOn": {
+   "text": "18 Oct 2026",
+   "unix": 1792252934
+  },
+  "bedrooms": 3,
+  "bathrooms": 2,
+  "floorArea": 990,
+  "additionalData": {
+   "tenure": "L99",
+   "areaText": "",
+   "areaCode": "",
+   "districtCode": "D23",
+   "districtText": "Dairy Farm / Bukit Panjang / Choa Chu Kang",
+   "regionText": "West (D22-24)",
+   "regionCode": "H"
+  },
+  "mrt": {
+   "nearbyText": "330 m (4 min) from BP11 Segar LRT",
+   "pill": {
+    "colors": [
+     "#A7A7A7"
+    ]
+   }
+  }
+ },
+ {
+  "id": 500272329,
+  "statusCode": "ACT",
+  "typeCode": "SALE",
+  "agent": {
+   "id": 10283135,
+   "name": "Joy Shi \u65bd\u8c28\u5a49",
+   "license": "R061023F"
+  },
+  "agency": {
+   "id": 4618,
+   "name": "PROPNEX REALTY PTE. LTD."
+  },
+  "psfText": "S$ 1,371.68 psf",
+  "listingFeatures": [
+   [
+    {
+     "iconName": "bed-o",
+     "text": "2",
+     "dataAutomationId": "listing-card-v2-bedrooms"
+    },
+    {
+     "iconName": "bath-o",
+     "text": "2",
+     "dataAutomationId": "listing-card-v2-bathrooms"
+    }
+   ],
+   {
+    "text": "678 sqft",
+    "dataAutomationId": "listing-card-v2-area"
+   },
+   {
+    "text": "HDB Flat",
+    "dataAutomationId": "listing-card-v2-unit-type"
+   },
+   {
+    "text": "99-year Leasehold",
+    "dataAutomationId": "listing-card-v2-tenure"
+   },
+   {
+    "text": "Built: 2021",
+    "dataAutomationId": "listing-card-v2-build-year"
+   }
+  ],
+  "property": {
+   "newProject": false,
+   "typeCode": "SALE",
+   "typeText": "For Sale",
+   "typeGroup": "H",
+   "subTypeText": "HDB Flat",
+   "isPremiumProjectListing": false,
+   "id": 25265
+  },
+  "fullAddress": "40A Margaret Drive, Alexandra / Commonwealth",
+  "shortAddress": "Alexandra / Commonwealth, City & South West (D01-08)",
+  "localizedTitle": "40A Margaret Drive",
+  "price": {
+   "value": 930000,
+   "type": {
+    "code": "NEG",
+    "text": "Negotiable"
+   },
+   "pretty": "S$ 930,000",
+   "currency": "SGD",
+   "localeStringValue": "930000"
+  },
+  "url": "https://www.propertyguru.com.sg/listing/hdb-for-sale-40a-margaret-drive-500272329",
+  "postedOn": {
+   "text": "17 Oct 2026",
+   "unix": 1792250617
+  },
+  "bedrooms": 2,
+  "bathrooms": 2,
+  "floorArea": 678,
+  "additionalData": {
+   "tenure": "L99",
+   "areaText": "",
+   "areaCode": "",
+   "districtCode": "D03",
+   "districtText": "Alexandra / Commonwealth",
+   "regionText": "City & South West (D01-08)",
+   "regionCode": "A"
+  },
+  "mrt": {
+   "nearbyText": "410 m (5 min) from EW19 Queenstown MRT",
+   "pill": {
+    "colors": [
+     "#16964F"
+    ]
+   }
+  }
+ }
+]

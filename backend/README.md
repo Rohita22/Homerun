@@ -130,6 +130,32 @@ Swap `HOMERUN_DATABASE_URL` to a `postgresql://` DSN for production; nothing els
   `property_type == "HDB"`, so the orchestrator never calls the model for them and the API
   returns `status: "unsupported_property_type"` instead.
 
+### Scraped PropertyGuru listings (`LISTING_PROVIDER=scraped`, free, no API quota)
+
+A Playwright scraper (`app/scraper/`) reads PropertyGuru's public search-result pages, normalizes
+each card (`parser.py`) and upserts it into the same `properties` table everything else reads.
+Buyer requests never touch the network; they only read the DB.
+
+- **Schedule**: the API process scrapes every `SCRAPE_INTERVAL_HOURS` (default 12) via
+  `app/scraper/scheduler.py`. Due-ness comes from the `scrape_runs` table, so restarts neither skip
+  nor repeat a run; a fully failed run is retried after 1h. Manual run / cron:
+  `python -m app.scraper [--if-due] [--headed] [--targets "hdb-for-sale:2"]`.
+- **Targets**: `SCRAPE_TARGETS="hdb-for-sale:30,condo-for-sale:20"` (path:pages,
+  20 listings per page). A full default run is about 60 page loads, roughly 15 minutes.
+- **Cloudflare**: PropertyGuru challenges a browser session that keeps navigating, and any query
+  string (even `?sort=`). So every page uses a fresh browser, plain paths, delays with jitter, and
+  retry with backoff. A page that stays blocked is skipped and counted in `scrape_runs`; there is no
+  stealth/proxy/CAPTCHA evasion by design.
+- **Towns**: the HDB town is looked up from `(block, street)` in `data/hdb_resale_live.csv`; the area
+  label is only used when it names a single town. Ambiguous (mostly condo) listings keep
+  `town=NULL` and show up as "needs confirmation" instead of being guessed.
+- **Staleness**: listings not re-seen for `SCRAPE_STALE_AFTER_HOURS` (72) are marked inactive.
+- **Not available from result cards**: storey range, flat model, agent phone/email (handoff falls
+  back to the original listing link). Remaining lease is estimated from build year and labelled so.
+- **Caveats**: PropertyGuru's terms restrict scraping; this is for the demo, and the UI says when
+  listings were last refreshed. Playwright has no Chromium build for s390x, so on the IBM Z server
+  run the scraper elsewhere against a shared DB, or switch to Postgres.
+
 ### Live listing data (PRD section 6 / 16)
 
 `LISTING_PROVIDER=authorized` wires up `app/providers/listing/authorized_provider.py` against a

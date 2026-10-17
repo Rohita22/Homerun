@@ -49,12 +49,17 @@ class HardFilterService:
                         f"transaction_type {listing_tx} does not match requested {profile_tx}"
                     )
 
-            if "property_type" in active_hard_fields and profile.property_type is not None:
+            requested_types = {
+                getattr(t, "value", t)
+                for t in [profile.property_type, *profile.property_types]
+                if t is not None
+            }
+            if "property_type" in active_hard_fields and requested_types:
                 listing_type = getattr(listing.property_type, "value", listing.property_type)
-                profile_type = getattr(profile.property_type, "value", profile.property_type)
-                if listing_type != profile_type:
+                if listing_type not in requested_types:
                     reasons_exclude.append(
-                        f"property_type {listing_type} does not match requested {profile_type}"
+                        f"property_type {listing_type} does not match requested "
+                        f"{', '.join(sorted(requested_types))}"
                     )
 
             if "max_price_sgd" in active_hard_fields and profile.max_price_sgd is not None:

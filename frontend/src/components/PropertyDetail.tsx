@@ -66,7 +66,7 @@ export function PropertyDetail({ listingId, onInterested, onBack }: Props) {
   return (
     <section className="card">
       <button className="ghost" onClick={onBack}>
-        ← Back to results
+        ← Back
       </button>
       <h2>{property.address_public ?? property.listing_id}</h2>
       <p className="price">
