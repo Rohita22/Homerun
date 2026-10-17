@@ -101,8 +101,21 @@ class PropertyRepository:
             self._db.add(row)
         else:
             for key, value in values.items():
+                # A re-scrape carries no coordinates; never wipe a geocode we already resolved.
+                if key in ("lat", "lon") and value is None:
+                    continue
                 setattr(row, key, value)
         return row
+
+    def mark_inactive(self, listing_id: str) -> None:
+        row = self._db.get(PropertyRow, listing_id)
+        if row is not None:
+            row.status = "inactive"
+
+    def set_geo(self, listing_id: str, lat: float, lon: float) -> None:
+        row = self._db.get(PropertyRow, listing_id)
+        if row is not None:
+            row.lat, row.lon = lat, lon
 
     def get(self, listing_id: str) -> PropertyListing | None:
         row = self._db.get(PropertyRow, listing_id)
@@ -113,12 +126,16 @@ class PropertyRepository:
             select(func.max(PropertyRow.fetched_at)).where(PropertyRow.provider == provider)
         ).scalar_one_or_none()
 
-    def list_all(self, provider: str | None = None) -> list[PropertyListing]:
+    def list_all(
+        self, provider: str | None = None, status: str | None = None
+    ) -> list[PropertyListing]:
         """All listings, or only those from one ``provider`` (so demo fixtures and live/scraped
         rows sitting in the same table never get mixed into one inventory)."""
         stmt = select(PropertyRow)
         if provider is not None:
             stmt = stmt.where(PropertyRow.provider == provider)
+        if status is not None:
+            stmt = stmt.where(PropertyRow.status == status)
         rows = self._db.execute(stmt).scalars().all()
         return [_row_to_entity(r) for r in rows]
 

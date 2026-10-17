@@ -1,4 +1,5 @@
-"""In-process timer: scrape every ``SCRAPE_INTERVAL_HOURS`` (default 12).
+"""In-process timer: scrape every ``SCRAPE_INTERVAL_HOURS`` (default 1: quick runs, with a full crawl every
+``SCRAPE_FULL_EVERY_HOURS``).
 
 Due-ness comes from the ``scrape_runs`` table, not from process uptime, so restarts (including
 ``uvicorn --reload``) neither skip a due run nor re-scrape right after a fresh one. For a server
@@ -30,7 +31,7 @@ async def scrape_forever(settings: Settings) -> None:
                 await asyncio.sleep(min(wait, _MAX_SLEEP_S))
                 continue
             logger.info("scrape_run_starting")
-            await asyncio.to_thread(run_scrape, settings)
+            await asyncio.to_thread(run_scrape, settings, None, "auto")
         except asyncio.CancelledError:
             raise
         except Exception:  # noqa: BLE001 - the timer must survive any single failure

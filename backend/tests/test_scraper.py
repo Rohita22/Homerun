@@ -84,11 +84,12 @@ def test_page_url_has_no_query_string():
     assert "?" not in page_url("hdb-for-sale", 3)
 
 
-def test_upsert_is_idempotent_and_stale_listings_deactivate(tmp_path):
+def test_upsert_is_idempotent_and_stale_listings_deactivate(tmp_path, client, seed_inventory):
     init_db()
     db = SessionLocal()
     try:
         repo = PropertyRepository(db)
+        baseline = repo.count(PROVIDER)  # fixture inventory seeded into the shared test DB
         now = utcnow()
         for _ in range(2):  # a second run must update in place, not duplicate
             for card in CARDS:
@@ -98,17 +99,19 @@ def test_upsert_is_idempotent_and_stale_listings_deactivate(tmp_path):
                 db.flush()
                 repo.replace_link(link)
             db.commit()
-        assert repo.count(PROVIDER) == 3
+        assert repo.count(PROVIDER) == baseline + 3
+        active_before = repo.count(PROVIDER, status="active")
         assert repo.get_agent_link(slug_from_url(CARDS[0]["url"])) is not None
 
         from datetime import timedelta
 
         assert repo.deactivate_unseen(PROVIDER, now - timedelta(hours=1)) == 0
-        assert repo.deactivate_unseen(PROVIDER, now + timedelta(hours=1)) == 3
+        assert repo.deactivate_unseen(PROVIDER, now + timedelta(hours=1)) == active_before
         db.commit()
         assert repo.count(PROVIDER, status="active") == 0
     finally:
         db.close()
+        seed_inventory()
 
 
 def test_dead_running_row_does_not_block_schedule():
@@ -135,4 +138,71 @@ def test_dead_running_row_does_not_block_schedule():
     finally:
         db.query(ScrapeRunRow).delete()
         db.commit()
+        db.close()
+
+
+def _card_with_media(tmp_path, **media):
+    card = {**CARDS[0], **media}
+    return parse_card(card, _resolver(tmp_path), utcnow())[0]
+
+
+def test_photo_links_are_kept_as_direct_https_cdn_urls(tmp_path):
+    listing = _card_with_media(
+        tmp_path,
+        thumbnail="https://sg1-cdn.pgimgs.com/listing/1/UPHO.1.V550.jpg",
+        mediaCarousel={"previewMedia": {"images": {"items": [
+            {"src": "https://sg1-cdn.pgimgs.com/listing/1/UPHO.1.V800/a.jpg", "caption": ""},
+            {"src": "http://insecure.example/x.jpg"},   # not https -> dropped
+            {"caption": "no src"},
+            {"src": "https://sg1-cdn.pgimgs.com/listing/1/UPHO.2.V800/a.jpg"},
+        ] + [{"src": f"https://sg1-cdn.pgimgs.com/p{i}.jpg"} for i in range(20)]}}},
+    )
+    attrs = listing.attributes
+    assert attrs["thumbnail"].endswith("V550.jpg")
+    assert attrs["photos"][:2] == [
+        "https://sg1-cdn.pgimgs.com/listing/1/UPHO.1.V800/a.jpg",
+        "https://sg1-cdn.pgimgs.com/listing/1/UPHO.2.V800/a.jpg",
+    ]
+    assert len(attrs["photos"]) == 10 and all(u.startswith("https://") for u in attrs["photos"])
+
+
+def test_card_without_media_has_no_photos_not_a_placeholder(tmp_path):
+    listing = _card_with_media(tmp_path)
+    assert listing.attributes["photos"] == [] and listing.attributes["thumbnail"] is None
+
+
+def test_listing_view_exposes_thumb_and_gallery(tmp_path):
+    from app.journey.views import listing_view
+
+    view = listing_view(_card_with_media(
+        tmp_path, thumbnail="https://sg1-cdn.pgimgs.com/t.jpg",
+        mediaCarousel={"previewMedia": {"images": {"items": [{"src": "https://sg1-cdn.pgimgs.com/g1.jpg"}]}}},
+    ))
+    assert view["thumb"] == "https://sg1-cdn.pgimgs.com/g1.jpg"  # no size token in this URL -> unchanged
+    assert view["photos"] == ["https://sg1-cdn.pgimgs.com/g1.jpg"]
+    sized = listing_view(_card_with_media(
+        tmp_path, mediaCarousel={"previewMedia": {"images": {"items": [
+            {"src": "https://sg1-cdn.pgimgs.com/listing/9/UPHO.1.V800/x.jpg"}]}}}))
+    assert sized["thumb"].endswith("UPHO.1.V800/x.jpg") and sized["photos"][0].endswith("UPHO.1.V1024/x.jpg")
+    bare = listing_view(_card_with_media(tmp_path))
+    assert bare["thumb"] is None and bare["photos"] == []
+
+
+def test_sync_listing_distinguishes_new_updated_unchanged(tmp_path):
+    from app.scraper.service import _sync_listing
+
+    init_db()
+    resolver = TownResolver(tmp_path / "none.csv")
+    listing, _, _ = parse_card(CARDS[0], resolver)
+    db = SessionLocal()
+    try:
+        repo = PropertyRepository(db)
+        now = utcnow()
+        _sync_listing(db, repo, listing, now)  # new, or already seeded by an earlier test
+        db.flush()
+        assert _sync_listing(db, repo, listing, now) == "unchanged"
+        listing.asking_price_sgd = (listing.asking_price_sgd or 0) + 1000
+        assert _sync_listing(db, repo, listing, now) == "updated"
+    finally:
+        db.rollback()
         db.close()

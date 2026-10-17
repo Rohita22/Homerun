@@ -1,5 +1,23 @@
 # Homerun frontend
 
+**The served UI is built from the design:** [`design/Homerun.html`](design/Homerun.html) is the source
+of truth for markup and styling and is never edited. [`app/build.py`](app/build.py) copies it to
+`app/dist/index.html`, swapping in [`app/logic.js`](app/logic.js) (the design's component logic with its
+mock data replaced by calls to the backend's `/api/ui/*`) and binding a few hard-coded prototype
+strings (demo badge, evidence tiles) to real data.
+
+```bash
+python3 frontend/app/build.py     # then the backend serves it at "/" (start.sh does both)
+```
+
+If the design file changes, re-run the build: each text binding must match exactly once, so a changed
+design fails loudly instead of silently shipping fake numbers.
+
+---
+
+## `src/` — earlier minimal test client (superseded)
+
+
 Minimal React + TypeScript + Vite client for manually testing the [Homerun backend](../backend).
 Not a polished production UI — it exists to click through the real PRD flow (chat → preferences
 → results → detail/compare → agent handoff) against a live API instead of using `/docs`.

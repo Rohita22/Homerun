@@ -16,7 +16,9 @@ def build_llm_provider(settings: Settings) -> LLMProvider:
     if settings.llm_provider == "gemini" and settings.gemini_api_key:
         from app.providers.llm.gemini_provider import GeminiLLMProvider
 
-        return GeminiLLMProvider(api_key=settings.gemini_api_key)
+        return GeminiLLMProvider(
+            api_key=settings.gemini_api_key, models=settings.gemini_model_chain
+        )
     if settings.llm_provider != "template":
         logger.warning(
             "llm_provider=%s not configured or missing API key; falling back to template",

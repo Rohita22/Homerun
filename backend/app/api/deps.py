@@ -22,6 +22,12 @@ from app.agents.valuation_agent import ValuationAgent
 from app.core.config import Settings, get_settings
 from app.db.base import get_db
 from app.domain.enums import SourceMode
+from app.journey.chat_service import ChatService
+from app.journey.geo import ALL_TOWNS
+from app.journey.handoff_ui_service import HandoffUiService
+from app.journey.match_service import MatchService
+from app.journey.viewing_service import ViewingService
+from app.journey.vision import GeminiVisionAnalyzer
 from app.ml.valuation_service import get_valuation_service
 from app.orchestration.orchestrator import RecommendationOrchestrator
 from app.providers.llm.factory import get_llm_provider
@@ -32,9 +38,11 @@ from app.repositories.handoff_repository import HandoffRepository
 from app.repositories.property_repository import PropertyRepository
 from app.repositories.recommendation_repository import RecommendationRepository
 from app.repositories.session_repository import SessionRepository
+from app.repositories.ui_repository import EnquiryRepository, ViewingRepository
 from app.services.consent_service import ConsentService
 from app.services.finance_service import FinanceCalculator
 from app.services.handoff_service import HandoffService
+from app.services.journey_ranker import JourneyRanker
 from app.services.ranking_service import HardFilterService, MultiObjectiveRanker
 
 
@@ -108,10 +116,7 @@ def get_handoff_service(
 
 
 def get_source_mode(settings: Settings = Depends(get_app_settings)) -> str:
-    return {
-        "authorized": SourceMode.LIVE_AUTHORIZED.value,
-        "scraped": SourceMode.LIVE_SCRAPED.value,
-    }.get(settings.listing_provider, SourceMode.DEMO_FIXTURE.value)
+    return SourceMode.LIVE_SCRAPED.value
 
 
 # ``properties.provider`` value of the rows each configured listing provider owns, so one
@@ -124,7 +129,7 @@ INVENTORY_PROVIDER = {
 
 
 def get_inventory_provider(settings: Settings = Depends(get_app_settings)) -> str:
-    return INVENTORY_PROVIDER.get(settings.listing_provider, "demo_fixture")
+    return INVENTORY_PROVIDER["scraped"]
 
 
 def get_orchestrator(
@@ -145,3 +150,79 @@ def get_orchestrator(
         source_mode=source_mode,
         inventory_provider=inventory_provider,
     )
+
+
+# --- Homerun UI (journey) services ---
+
+
+def get_journey_orchestrator(
+    property_repo: PropertyRepository = Depends(get_property_repository),
+    recommendation_repo: RecommendationRepository = Depends(get_recommendation_repository),
+    market_agent: MarketIntelligenceAgent = Depends(get_market_intelligence_agent),
+    valuation_agent: ValuationAgent = Depends(get_valuation_agent),
+    source_mode: str = Depends(get_source_mode),
+    inventory_provider: str = Depends(get_inventory_provider),
+) -> RecommendationOrchestrator:
+    ranker = JourneyRanker()
+    matching = MatchingDecisionAgent(ranker)
+    matching.version = ranker.version
+    return RecommendationOrchestrator(
+        property_repo=property_repo,
+        recommendation_repo=recommendation_repo,
+        market_agent=market_agent,
+        valuation_agent=valuation_agent,
+        matching_agent=matching,
+        source_mode=source_mode,
+        inventory_provider=inventory_provider,
+    )
+
+
+def get_match_service(
+    orchestrator: RecommendationOrchestrator = Depends(get_journey_orchestrator),
+    property_repo: PropertyRepository = Depends(get_property_repository),
+    session_repo: SessionRepository = Depends(get_session_repository),
+    feedback_repo: FeedbackRepository = Depends(get_feedback_repository),
+    affordability_agent: AffordabilityRiskAgent = Depends(get_affordability_agent),
+    valuation_agent: ValuationAgent = Depends(get_valuation_agent),
+    source_mode: str = Depends(get_source_mode),
+) -> MatchService:
+    return MatchService(
+        orchestrator, property_repo, session_repo, feedback_repo, affordability_agent,
+        valuation_agent, source_mode,
+    )
+
+
+def get_chat_service(
+    agent: BuyerIntelligenceAgent = Depends(get_buyer_intelligence_agent),
+    session_repo: SessionRepository = Depends(get_session_repository),
+    settings: Settings = Depends(get_app_settings),
+) -> ChatService:
+    return ChatService(agent, session_repo, ALL_TOWNS, settings.ui_town_list)
+
+
+def get_enquiry_repository(db: DbSession = Depends(get_db)) -> EnquiryRepository:
+    return EnquiryRepository(db)
+
+
+def get_viewing_repository(db: DbSession = Depends(get_db)) -> ViewingRepository:
+    return ViewingRepository(db)
+
+
+def get_handoff_ui_service(
+    property_repo: PropertyRepository = Depends(get_property_repository),
+    handoff_service: HandoffService = Depends(get_handoff_service),
+    enquiries: EnquiryRepository = Depends(get_enquiry_repository),
+    session_repo: SessionRepository = Depends(get_session_repository),
+) -> HandoffUiService:
+    return HandoffUiService(property_repo, handoff_service, enquiries, session_repo)
+
+
+def get_viewing_service(
+    viewings: ViewingRepository = Depends(get_viewing_repository),
+    enquiries: EnquiryRepository = Depends(get_enquiry_repository),
+    property_repo: PropertyRepository = Depends(get_property_repository),
+    session_repo: SessionRepository = Depends(get_session_repository),
+    settings: Settings = Depends(get_app_settings),
+) -> ViewingService:
+    vision = GeminiVisionAnalyzer(settings.gemini_api_key, settings.gemini_model_chain)
+    return ViewingService(viewings, enquiries, property_repo, vision, session_repo)

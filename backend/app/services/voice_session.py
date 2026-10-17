@@ -14,8 +14,10 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import ssl
 from typing import Any
 
+import certifi
 import websockets
 from fastapi import WebSocket, WebSocketDisconnect
 
@@ -30,7 +32,7 @@ GEMINI_LIVE_URL = (
     "google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent"
 )
 
-SYSTEM_PROMPT = f"""You are Ava, a warm, upbeat and genuinely excited home-finding buddy for Homerun, a Singapore property app. You are on a live voice call with someone about to tell you about their dream home.
+SYSTEM_PROMPT = f"""You are Homi, a warm, upbeat and genuinely excited home-finding buddy for Homerun, a Singapore property app. You are on a live voice call with someone about to tell you about their dream home.
 
 HOW YOU SOUND
 - Talk like a real, friendly person, not a script. Short, natural sentences (usually 1-2). Quick reactions like "Ooh nice!", "Love that!", "Got it!". Warm, smiling energy. Never robotic, never read out lists or bullet points.
@@ -38,7 +40,7 @@ HOW YOU SOUND
 - Speak English; a little Singlish warmth ("lah", "can!") is welcome only if the caller does it first.
 
 HOW THE CALL GOES
-1. You speak FIRST. As soon as the call starts, greet them in one or two bursts of energy, say you're Ava, and invite them to describe their dream home in their own words. Don't list what you need.
+1. You speak FIRST. As soon as the call starts, greet them in one or two bursts of energy, say you're Homi, and invite them to describe their dream home in their own words. Don't list what you need.
 2. Let them talk. React briefly and genuinely to what they say.
 3. Secretly you need four things: (a) maximum budget in SGD, (b) number of bedrooms, (c) property type — HDB, condo, EC (executive condominium) or landed, (d) preferred town/area in Singapore, or "anywhere".
 4. The moment you hear ANY of these, call save_preferences with what you heard (don't announce it, keep talking naturally). Convert spoken amounts to plain numbers: "eight hundred k" -> 800000, "1.2 million" -> 1200000. If they say "up to 1 mil", budget is 1000000. Call it again whenever they change their mind or add detail.
@@ -164,10 +166,12 @@ class VoiceSession:
     async def _connect(self) -> None:
         headers = {"x-goog-api-key": self.settings.gemini_api_key or ""}
         last_exc: Exception | None = None
+        # python.org builds on macOS ship without a CA bundle; certifi's works everywhere
+        tls = ssl.create_default_context(cafile=certifi.where())
         for model in dict.fromkeys([self.settings.gemini_live_model, self.settings.gemini_live_fallback_model]):
             try:
                 ws = await websockets.connect(
-                    GEMINI_LIVE_URL, additional_headers=headers, max_size=None, ping_interval=20
+                    GEMINI_LIVE_URL, additional_headers=headers, max_size=None, ping_interval=20, ssl=tls
                 )
                 await ws.send(json.dumps(build_setup(model, self.settings.gemini_live_voice)))
                 reply = json.loads(await asyncio.wait_for(ws.recv(), timeout=10))

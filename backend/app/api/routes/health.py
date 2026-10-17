@@ -44,14 +44,14 @@ def health(
         listing_provider=provider.name,
         listing_provider_healthy=provider.health(),
         listing_catalog_size=property_repo.count(
-            INVENTORY_PROVIDER.get(settings.listing_provider, "demo_fixture"), status="active"
+            INVENTORY_PROVIDER["scraped"], status="active"
         ),
         llm_provider=settings.llm_provider,
         database=database_status,
         valuation_model_version=valuation_service.version,
         valuation_model_is_trained=valuation_service.is_trained,
         listings_last_refreshed_at=property_repo.latest_fetched_at(
-            INVENTORY_PROVIDER.get(settings.listing_provider, "demo_fixture")
+            INVENTORY_PROVIDER["scraped"]
         ),
     )
 

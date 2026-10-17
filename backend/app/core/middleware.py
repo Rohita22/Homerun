@@ -29,5 +29,8 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         elapsed_ms = (time.perf_counter() - start) * 1000
         response.headers[REQUEST_ID_HEADER] = request_id
         response.headers["X-Elapsed-Ms"] = f"{elapsed_ms:.2f}"
-        get_metrics_collector().record(elapsed_ms, is_error=response.status_code >= 400)
+        # Only API calls are service metrics: the static UI also serves assets, and a stray 404 for
+        # one of those is not an API error.
+        if request.url.path.startswith("/api/"):
+            get_metrics_collector().record(elapsed_ms, is_error=response.status_code >= 400)
         return response

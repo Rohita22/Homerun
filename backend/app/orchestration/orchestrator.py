@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from app.agents.market_intelligence import CandidateSet, MarketIntelligenceAgent
@@ -100,6 +101,8 @@ class RecommendationOrchestrator:
         limit: int = 5,
         weights: dict[str, float] | None = None,
         persist: bool = True,
+        scope: Callable[[PropertyListing], bool] | None = None,
+        value_ranked_only: bool = False,
     ) -> OrchestrationResult:
         warnings: list[str] = []
         trace: list[AgentResult] = []
@@ -111,6 +114,8 @@ class RecommendationOrchestrator:
 
         # --- retrieve ---
         inventory = self._property_repo.list_all(provider=self._inventory_provider)
+        if scope is not None:
+            inventory = [listing for listing in inventory if scope(listing)]
         logger.info(
             "[ORCHESTRATOR] request_id=%s stage=retrieve n_inventory=%d source_mode=%s",
             request_id, len(inventory), self._source_mode,
@@ -145,21 +150,9 @@ class RecommendationOrchestrator:
         # --- value (HDB only; unsupported types are labeled, never scored on price) ---
         valuations: dict[str, ValuationResult] = {}
         valuation_runs: list[AgentResult] = []
-        for listing in candidate_set.eligible:
-            listing_type = getattr(listing.property_type, "value", listing.property_type)
-            if listing_type != PropertyType.HDB.value:
-                continue
-            val_result = self._valuation_agent.run(request_id, listing)
-            valuation_runs.append(val_result)
-            if val_result.data:
-                valuations[listing.listing_id] = val_result.data
-        trace.append(_aggregate_valuation_trace(request_id, valuation_runs))
-        logger.info(
-            "[ORCHESTRATOR] request_id=%s stage=value n_hdb_candidates=%d n_valued=%d "
-            "total_elapsed_ms=%.1f",
-            request_id, len(valuation_runs), len(valuations),
-            sum(r.elapsed_ms for r in valuation_runs),
-        )
+        if not value_ranked_only:
+            self._value_listings(request_id, candidate_set.eligible, valuations, valuation_runs)
+            trace.append(_aggregate_valuation_trace(request_id, valuation_runs))
 
         # --- calculate financing: intentionally skipped here; see module docstring ---
 
@@ -171,6 +164,17 @@ class RecommendationOrchestrator:
         ranked_items = decision_result.data or []
         warnings.extend(decision_result.warnings)
         trace.append(decision_result)
+        if value_ranked_only:
+            # Valuation is never a ranking objective, so value only what is actually shown.
+            by_id = {listing.listing_id: listing for listing in candidate_set.eligible}
+            self._value_listings(
+                request_id, [by_id[i.listing_id] for i in ranked_items], valuations, valuation_runs
+            )
+            trace.append(_aggregate_valuation_trace(request_id, valuation_runs))
+            for item in ranked_items:
+                found = valuations.get(item.listing_id)
+                if found is not None:
+                    item.valuation, item.valuation_status = found, found.status
         logger.info(
             "[ORCHESTRATOR] request_id=%s stage=rank agent=%s status=%s elapsed_ms=%.1f "
             "ranked_count=%d",
@@ -200,6 +204,27 @@ class RecommendationOrchestrator:
             warnings=warnings,
             model_version=decision_result.model_version or "",
             trace=trace,
+        )
+
+    def _value_listings(
+        self,
+        request_id: str,
+        listings: list[PropertyListing],
+        valuations: dict[str, ValuationResult],
+        runs: list[AgentResult],
+    ) -> None:
+        for listing in listings:
+            listing_type = getattr(listing.property_type, "value", listing.property_type)
+            if listing_type != PropertyType.HDB.value:
+                continue
+            val_result = self._valuation_agent.run(request_id, listing)
+            runs.append(val_result)
+            if val_result.data:
+                valuations[listing.listing_id] = val_result.data
+        logger.info(
+            "[ORCHESTRATOR] request_id=%s stage=value n_hdb_candidates=%d n_valued=%d "
+            "total_elapsed_ms=%.1f",
+            request_id, len(runs), len(valuations), sum(r.elapsed_ms for r in runs),
         )
 
     def rerank(

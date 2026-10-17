@@ -9,18 +9,22 @@ from __future__ import annotations
 import asyncio
 import platform
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import (
+    admin,
     chat,
     compare,
     feedback,
     finance,
     handoffs,
     health,
+    journey,
     preferences,
     properties,
     recommendations,
@@ -50,7 +54,7 @@ async def lifespan(app: FastAPI):  # noqa: ANN201, ARG001
     valuation_service = get_valuation_service()
     db = SessionLocal()
     try:
-        catalog_size = len(PropertyRepository(db).list_all())
+        catalog_size = PropertyRepository(db).count("propertyguru_scraper", status="active")
     finally:
         db.close()
 
@@ -69,7 +73,7 @@ async def lifespan(app: FastAPI):  # noqa: ANN201, ARG001
         }
     )
     scrape_task = None
-    if settings.listing_provider == "scraped" and settings.scrape_enabled:
+    if settings.scrape_enabled:
         scrape_task = asyncio.create_task(scrape_forever(settings), name="propertyguru-scraper")
     yield
     if scrape_task is not None:
@@ -128,9 +132,19 @@ def create_app() -> FastAPI:
         finance.router,
         handoffs.router,
         voice.router,
+        journey.router,
+        admin.router,
     ]
     for router in api_routers:
         app.include_router(router, prefix="/api")
+
+    # The built Homerun UI is served from the same origin as the API (no CORS, one port on the
+    # VM). Registered last so every /api route wins over the static catch-all.
+    frontend = Path(settings.frontend_dir)
+    if (frontend / "index.html").exists():
+        app.mount("/", StaticFiles(directory=frontend, html=True), name="frontend")
+    else:
+        logger.warning("frontend_not_found dir=%s serving API only", frontend)
 
     return app
 

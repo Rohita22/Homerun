@@ -136,7 +136,7 @@ A Playwright scraper (`app/scraper/`) reads PropertyGuru's public search-result 
 each card (`parser.py`) and upserts it into the same `properties` table everything else reads.
 Buyer requests never touch the network; they only read the DB.
 
-- **Schedule**: the API process scrapes every `SCRAPE_INTERVAL_HOURS` (default 12) via
+- **Schedule**: the API process scrapes every `SCRAPE_INTERVAL_HOURS` (default 1). Hourly runs are *quick* (first `SCRAPE_QUICK_PAGES` pages per target; unchanged listings are only touched, changed/new ones rewritten); a *full* crawl runs every `SCRAPE_FULL_EVERY_HOURS` (default 12) and is the only run that retires missing listings. `python -m app.scraper --mode auto|quick|full` via
   `app/scraper/scheduler.py`. Due-ness comes from the `scrape_runs` table, so restarts neither skip
   nor repeat a run; a fully failed run is retried after 1h. Manual run / cron:
   `python -m app.scraper [--if-due] [--headed] [--targets "hdb-for-sale:2"]`.
@@ -176,6 +176,35 @@ Two things worth knowing before touching this:
   phone/email, so `get_listing_agent` honestly returns `approved_contact=None` for every live
   listing — `HandoffService` then safely falls back to the original-listing-only channel instead
   of a contact channel ever being fabricated.
+
+## Homerun UI API (`/api/ui/*`)
+
+The product design ([`../frontend/design/Homerun.html`](../frontend/design/Homerun.html)) drives these
+endpoints. They are an adapter over the agents above (package `app/journey/`), so the domain layer
+stays UI-agnostic. Every screen's data is produced by the pipeline, never by the browser.
+
+| Screen | Endpoint | What runs |
+|---|---|---|
+| boot | `GET /ui/config` | towns shown as chips, defaults, catalog size / freshness |
+| describe (chat + voice transcript) | `POST /ui/chat` | Buyer Intelligence agent (Gemini → template fallback), grounded against the buyer's own words; asks only for HDB/condo/both when missing |
+| profile + matches | `POST /ui/match` | Market Intelligence (hard filters, short reasons like "other town", "$41k over") → Matching (4-factor `JourneyRanker`: commute, MRT, space, price; unknowns take a 6-pt penalty) → Valuation (HDB model, only for what is shown) |
+| home | `POST /ui/finance` | Affordability agent (monthly, loan) |
+| compare | `POST /ui/compare` | per-row "best", monthly cost, plain-words summary |
+| refine | `POST /ui/feedback` | tagged reasons nudge slider weights (+2); pairwise choice recorded; re-rank; must-haves never relaxed |
+| interest → contact → outcome | `POST /ui/interest`, `POST /ui/handoff` | PRD §8 handoff state machine; scraped agents have no authorised contact, so the route is the original listing |
+| my move | `GET /ui/hub`, `POST/PATCH/DELETE /ui/viewings…` | viewings, checklist, notes, photos (+ `…/photos/{id}/analyze` → Gemini vision) |
+| evidence | `GET /health`, `GET /metrics` + the `trace` in every response | real agent timings / model version / warnings |
+
+Notes worth knowing:
+
+- **Commute is an estimate** (straight-line to Raffles Place → minutes; marked `~` in the UI and
+  flagged in the evidence panel). Coordinates come from OneMap geocoding (`python -m app.scraper
+  --geocode-only`); a listing with none is listed under "not on map" rather than placed by guess.
+- **Gemini models**: `GEMINI_MODEL` is tried first, then `GEMINI_FALLBACK_MODEL`; a model Google
+  reports as unknown (404) or over quota (429) is skipped for a while. With no working model the chat
+  falls back to the deterministic extractor and photo analysis reports an error (never invents notes).
+- **Sessions**: the browser keeps a random `session_id` in localStorage; viewings and enquiry
+  outcomes are stored server-side under it (contact details are never stored).
 
 ## API contract
 
@@ -241,6 +270,28 @@ fallback), mortgage math, the ML training/evaluation pipeline (beats baseline, r
 coverage, never scores condos), and the end-to-end chat → recommend → compare → feedback flow.
 
 ## Deployment to IBM Z / LinuxONE
+
+One command from your laptop (idempotent; keeps the VM's `.env` and database):
+
+```bash
+deploy/deploy.sh <user>@<host> --key backend/homerun1.pem [--push] [--retrain]
+```
+
+What it does: builds the UI, rsyncs `backend/` + `frontend/app/dist` to `/opt/homerun`, writes the
+VM's `.env` (production, `SCRAPE_ENABLED=false`, a generated `ADMIN_TOKEN`), runs
+`scripts/bootstrap.sh` (apt numpy/pandas/scikit-learn/scipy + `requirements-server.txt`, trains the
+HDB model with the VM's scikit-learn), installs `scripts/homerun-backend.service`, opens :8000 and
+checks `/api/health` (should say `s390x`).
+
+- **No scraping on s390x.** Playwright has no s390x Chromium. Scrape elsewhere, then ship the rows:
+  `python -m app.scraper --push http://<host>:8000 --token <ADMIN_TOKEN>` (or `--push-only`).
+  `POST /api/admin/ingest` accepts only `propertyguru_scraper` rows, requires `X-Admin-Token`, keeps
+  geocodes and marks listings missing from the push inactive. `deploy.sh --push` does this for you.
+- The UI is served by the API itself (`FRONTEND_DIR`), so there is one port and no CORS.
+- Public exposure is plain HTTP on :8000 with no auth in front — fine for a judging window; put
+  Nginx/Caddy with TLS in front otherwise. Also open TCP 8000 in the VM's cloud security group.
+
+Older notes from the first hand deployment (`zdatathonhomerun`, Ubuntu 24.04, `148.100.77.89`):
 
 See `scripts/bootstrap.sh` (provisions venv, verifies `uname -m`, installs pinned deps, runs a
 package smoke test, bootstraps the DB + demo catalog, trains the valuation model, runs tests) and

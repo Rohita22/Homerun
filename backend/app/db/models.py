@@ -194,3 +194,39 @@ class ScrapeRunRow(Base):
     listings_seen: Mapped[int] = mapped_column(Integer, default=0)
     listings_deactivated: Mapped[int] = mapped_column(Integer, default=0)
     detail_json: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+class ViewingRow(Base):
+    """A planned/past property viewing for the "My move" hub (calendar, checklist, notes and
+    AI-analysed photos). ``photos_json`` holds ``[{id, url, status, obs}]`` — kept inline because
+    a viewing's photos are only ever read and written together with the viewing."""
+
+    __tablename__ = "viewings"
+
+    viewing_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    session_id: Mapped[str] = mapped_column(
+        ForeignKey("sessions.session_id", ondelete="CASCADE"), index=True
+    )
+    listing_id: Mapped[str] = mapped_column(String)
+    at_ms: Mapped[int] = mapped_column(Integer)  # epoch milliseconds (buyer's local wall time)
+    status: Mapped[str] = mapped_column(String, default="self")  # confirmed|requested|self
+    checks_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    notes: Mapped[str] = mapped_column(String, default="")
+    photos_json: Mapped[list] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(default=_now)
+
+
+class EnquiryRow(Base):
+    """What the buyer did about a listing (sent / redirected to source / failed) — the "enquiries"
+    list in the hub. Never stores contact details, only the outcome and the handoff reference."""
+
+    __tablename__ = "enquiries"
+
+    enquiry_id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    session_id: Mapped[str] = mapped_column(
+        ForeignKey("sessions.session_id", ondelete="CASCADE"), index=True
+    )
+    listing_id: Mapped[str] = mapped_column(String)
+    kind: Mapped[str] = mapped_column(String)  # submitted|redirected|failed
+    handoff_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(default=_now)

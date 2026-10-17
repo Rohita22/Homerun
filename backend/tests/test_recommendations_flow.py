@@ -25,7 +25,7 @@ def test_recommendations_return_ranked_eligible_listings(client, session_id) -> 
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["source_mode"] == "demo_fixture"
+    assert body["source_mode"] == "live_scraped"
     assert 1 <= body["returned_count"] <= 5
     for item in body["items"]:
         assert item["rank"] >= 1

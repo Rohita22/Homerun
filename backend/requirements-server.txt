@@ -1,0 +1,21 @@
+# Runtime dependencies for a server deployment (IBM Z / LinuxONE s390x, or any Linux host).
+#
+# Deliberately NOT in here:
+#   numpy / pandas / scikit-learn / scipy  -> no s390x wheels on PyPI; install the distro builds
+#                                             (apt: python3-numpy python3-pandas python3-sklearn
+#                                             python3-scipy) and create the venv with
+#                                             --system-site-packages (see scripts/bootstrap.sh)
+#   playwright                             -> no Chromium build for s390x; scrape on another machine
+#                                             and push (python -m app.scraper --push <url>)
+#   uvicorn[standard]                      -> uvloop/httptools have no s390x wheels; plain uvicorn
+#                                             (asyncio + h11) is fully supported
+fastapi==0.115.6
+uvicorn==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.1
+SQLAlchemy==2.0.36
+httpx==0.28.1
+python-dotenv==1.0.1
+joblib==1.4.2
+websockets>=13.0
+certifi

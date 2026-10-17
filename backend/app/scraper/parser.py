@@ -76,6 +76,21 @@ def _features(card: dict) -> dict[str, str]:
     return out
 
 
+MAX_PHOTOS = 10
+
+
+def _https(value: Any) -> str | None:
+    return value if isinstance(value, str) and value.startswith("https://") else None
+
+
+def _photos(card: dict) -> list[str]:
+    """Direct CDN links to the card's gallery photos (the buyer's browser loads them from PropertyGuru
+    itself; nothing is downloaded or re-hosted)."""
+    items = (((card.get("mediaCarousel") or {}).get("previewMedia") or {}).get("images") or {}).get("items") or []
+    urls = [u for u in (_https(i.get("src")) for i in items if isinstance(i, dict)) if u]
+    return urls[:MAX_PHOTOS]
+
+
 def slug_from_url(url: str | None) -> str | None:
     if not url or "/listing/" not in url:
         return None
@@ -158,6 +173,8 @@ def parse_card(
             "price_type": ((card.get("price") or {}).get("type") or {}).get("text"),
             "mrt": (card.get("mrt") or {}).get("nearbyText") or None,
             "agency": (card.get("agency") or {}).get("name"),
+            "thumbnail": _https(card.get("thumbnail")),
+            "photos": _photos(card),
         },
         images_allowed=False,
         agent_ref=agent_id,

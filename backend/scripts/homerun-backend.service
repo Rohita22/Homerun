@@ -1,13 +1,17 @@
 [Unit]
-Description=Homerun FastAPI backend (IBM Z Datathon 2026)
+Description=Homerun (API + UI) — IBM Z Datathon 2026
 After=network.target
 
 [Service]
 Type=simple
-User=homerun
+# __SERVICE_USER__ is filled in by deploy/deploy.sh (the SSH user that owns /opt/homerun)
+User=__SERVICE_USER__
 WorkingDirectory=/opt/homerun/backend
 EnvironmentFile=/opt/homerun/backend/.env
-ExecStart=/opt/homerun/backend/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+Environment=PYTHONUNBUFFERED=1
+# One worker: metrics and the valuation model are per-process, so a single process keeps the
+# evidence panel's numbers coherent. Sync endpoints run in a threadpool, which is plenty here.
+ExecStart=/opt/homerun/backend/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
 Restart=on-failure
 RestartSec=5
 

@@ -14,3 +14,7 @@
 .env
 .env.*
 !.env.example
+
+# SSH keys (never commit)
+*.pem
+*.key

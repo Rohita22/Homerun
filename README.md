@@ -5,28 +5,42 @@ See [`Homerun_Complete_PRD.pdf`](Homerun_Complete_PRD.pdf) for the full spec.
 
 - [`backend/`](backend/) — FastAPI + SQLite + scikit-learn backend implementing the PRD's P0
   scope (five agents, orchestrator, HDB valuation model, handoff state machine, full API).
-- [`frontend/`](frontend/) — minimal React/Vite client for manually testing the backend's real
-  flow end to end.
+- [`frontend/design/Homerun.html`](frontend/design/Homerun.html) — the product design (the source of
+  truth for every screen). [`frontend/app/`](frontend/app/) builds it into the served UI: markup and
+  styling are the design's, only its mock data is replaced by calls to the backend.
+- [`frontend/src/`](frontend/src/) — the earlier minimal React/Vite test client (superseded; kept for
+  reference).
 
-## Run both
+## Run it
 
 ```bash
-# Terminal 1 — backend (first run: ./backend/scripts/bootstrap.ps1 or bootstrap.sh)
-cd backend
-.\.venv\Scripts\uvicorn.exe app.main:app --reload     # Windows
-# source .venv/bin/activate && uvicorn app.main:app --reload   # Linux/LinuxONE
-
-# Terminal 2 — frontend
-cd frontend
-npm install   # first time only
-npm run dev
+./start.sh            # builds the UI, installs deps, starts everything on http://localhost:8000
 ```
 
-Then open **http://localhost:5173** for the app, or **http://localhost:8000/docs** for the raw
-API (Swagger UI) — both talk to the same backend.
+That one port serves the UI (`/`), the API (`/api`) and Swagger (`/docs`). The first run installs the
+backend dependencies and trains the HDB valuation model on the resale dataset.
 
-Each directory has its own README with architecture notes, the SOLID mapping, the full API
-contract, and deployment instructions for the IBM Z / LinuxONE target.
+The listing data is **scraped PropertyGuru data only** (no demo/fixture listings in the app):
+
+```bash
+cd backend && source .venv/bin/activate
+python -m app.scraper --targets "hdb-for-sale:30,condo-for-sale:15"   # needs Playwright (macOS/x86 Linux)
+python -m app.scraper --geocode-only                                   # fills coordinates (map + commute)
+```
+
+The server also re-scrapes on a timer (`SCRAPE_INTERVAL_HOURS`, default 12) when `SCRAPE_ENABLED=true`.
+
+## Deploy to the IBM LinuxONE (s390x) VM
+
+```bash
+deploy/deploy.sh <user>@<host> --key backend/homerun1.pem --push
+```
+
+Syncs the backend + built UI to `/opt/homerun`, installs numpy/pandas/scikit-learn from `apt`
+(PyPI has no s390x wheels), trains the valuation model on the VM, installs the `homerun-backend`
+systemd unit and opens port 8000. **Chromium has no s390x build, so the VM cannot scrape**: scrape on
+your Mac/Linux box and `--push` (or `python -m app.scraper --push-only http://<host>:8000 --token
+<ADMIN_TOKEN>`) to ship the listings to it. Details in [`backend/README.md`](backend/README.md).
 
 ## Currently live
 

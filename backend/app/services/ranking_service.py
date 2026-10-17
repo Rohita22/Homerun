@@ -40,6 +40,9 @@ class HardFilterService:
         for listing in listings:
             reasons_exclude: list[str] = []
             reasons_confirm: list[str] = []
+            # Machine-readable twin of the prose reasons: {"field": ..., plus numbers the UI needs}.
+            codes_exclude: list[dict] = []
+            codes_confirm: list[dict] = []
 
             if "transaction_type" in active_hard_fields:
                 listing_tx = getattr(listing.transaction_type, "value", listing.transaction_type)
@@ -48,6 +51,7 @@ class HardFilterService:
                     reasons_exclude.append(
                         f"transaction_type {listing_tx} does not match requested {profile_tx}"
                     )
+                    codes_exclude.append({"field": "transaction_type"})
 
             requested_types = {
                 getattr(t, "value", t)
@@ -61,14 +65,20 @@ class HardFilterService:
                         f"property_type {listing_type} does not match requested "
                         f"{', '.join(sorted(requested_types))}"
                     )
+                    codes_exclude.append({"field": "property_type", "value": listing_type})
 
             if "max_price_sgd" in active_hard_fields and profile.max_price_sgd is not None:
                 if listing.asking_price_sgd is None:
                     reasons_confirm.append("asking price unknown; cannot verify budget fit")
+                    codes_confirm.append({"field": "max_price_sgd", "unknown": True})
                 elif listing.asking_price_sgd > profile.max_price_sgd:
                     reasons_exclude.append(
                         f"price S${listing.asking_price_sgd:,.0f} exceeds max "
                         f"S${profile.max_price_sgd:,.0f}"
+                    )
+                    codes_exclude.append(
+                        {"field": "max_price_sgd",
+                         "over": listing.asking_price_sgd - profile.max_price_sgd}
                     )
             if profile.min_price_sgd is not None and listing.asking_price_sgd is not None:
                 if listing.asking_price_sgd < profile.min_price_sgd:
@@ -77,10 +87,12 @@ class HardFilterService:
             if "min_bedrooms" in active_hard_fields and profile.min_bedrooms is not None:
                 if listing.bedrooms is None:
                     reasons_confirm.append("bedroom count unknown; cannot verify room requirement")
+                    codes_confirm.append({"field": "min_bedrooms", "unknown": True})
                 elif listing.bedrooms < profile.min_bedrooms:
                     reasons_exclude.append(
                         f"{listing.bedrooms} bedrooms fewer than required {profile.min_bedrooms}"
                     )
+                    codes_exclude.append({"field": "min_bedrooms", "value": listing.bedrooms})
 
             if "min_floor_area_sqm" in active_hard_fields and profile.min_floor_area_sqm:
                 if listing.floor_area_sqm is None:
@@ -91,18 +103,25 @@ class HardFilterService:
             if "preferred_towns" in active_hard_fields and profile.preferred_towns:
                 if listing.town is None:
                     reasons_confirm.append("town unknown; cannot verify location requirement")
+                    codes_confirm.append({"field": "preferred_towns", "unknown": True})
                 elif listing.town.upper() not in {t.upper() for t in profile.preferred_towns}:
                     reasons_exclude.append(f"town {listing.town} not in preferred towns")
+                    codes_exclude.append({"field": "preferred_towns", "value": listing.town})
 
             listing_status = getattr(listing.status, "value", listing.status)
             if listing_status == "inactive":
                 reasons_exclude.append("listing is no longer active")
+                codes_exclude.append({"field": "status"})
 
             if reasons_exclude:
-                result.excluded.append({"listing_id": listing.listing_id, "reasons": reasons_exclude})
+                result.excluded.append(
+                    {"listing_id": listing.listing_id, "reasons": reasons_exclude,
+                     "codes": codes_exclude}
+                )
             elif reasons_confirm:
                 result.needs_confirmation.append(
-                    {"listing_id": listing.listing_id, "reasons": reasons_confirm}
+                    {"listing_id": listing.listing_id, "reasons": reasons_confirm,
+                     "codes": codes_confirm}
                 )
             else:
                 result.eligible.append(listing)

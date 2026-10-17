@@ -11,6 +11,7 @@ playwright==1.49.1
 python-dotenv==1.0.1
 joblib==1.4.2
 websockets>=13.0
+certifi
 
 # dev / test
 pytest==8.3.4

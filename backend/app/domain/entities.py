@@ -139,6 +139,9 @@ class RankedItem(BaseModel):
     factors: dict[str, float] = Field(default_factory=dict)
     valuation_status: str | None = None
     valuation: ValuationResult | None = None
+    # Free-form, ranker-specific breakdown (per-factor contribution, penalties, tone-tagged
+    # reasons) for clients that render "why this rank?" — empty for rankers that don't supply it.
+    detail: dict[str, Any] = Field(default_factory=dict)
 
 
 TData = TypeVar("TData")

@@ -6,8 +6,9 @@ def test_health_ok(client: TestClient) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "ok"
-    assert body["listing_provider"] == "demo_fixture"
-    assert body["listing_provider_healthy"] is True
+    assert body["listing_provider"] == "scraped"
+    # healthy only after a successful scrape run, and tests never scrape
+    assert body["listing_provider_healthy"] is False
     assert body["database"] == "ok"
 
 
