@@ -1,0 +1,98 @@
+{
+  "model_version": "hgb-cqr-20261017121226",
+  "trained_at": "2026-10-17T12:12:29.098311+00:00",
+  "is_synthetic_training_data": false,
+  "data_source": "data/hdb_resale_live.csv",
+  "seed": 42,
+  "n_train": 170068,
+  "n_val": 36443,
+  "n_test": 36444,
+  "hyperparameter_search": {
+    "ran": false,
+    "best_params": null
+  },
+  "feature_importances_mae_increase": {
+    "floor_area_sqm": 57104.0689,
+    "town": 52230.878,
+    "remaining_lease_years": 31588.9813,
+    "flat_type": 14262.568,
+    "flat_model": 10533.4493,
+    "storey_range": 5783.075,
+    "transaction_month_ordinal": 0.0
+  },
+  "calibration": {
+    "conformal_margin": 31694.171481225665,
+    "nominal_coverage": 0.8,
+    "fitted_on_months": [
+      24289,
+      24290,
+      24291,
+      24292,
+      24293,
+      24294,
+      24295,
+      24296,
+      24297,
+      24298,
+      24299,
+      24300,
+      24301,
+      24302,
+      24303,
+      24304,
+      24305
+    ],
+    "lower_residual_quantile": 0.0,
+    "upper_residual_quantile": 0.0
+  },
+  "hgb_test_metrics": {
+    "mae": 72624.46822288129,
+    "median_ae": 59585.38925462845,
+    "n": 36444,
+    "interval_empirical_coverage": 0.5749643288332784,
+    "interval_mean_width": 154817.23601986805,
+    "mae_by_town": {
+      "ANG MO KIO": 57915.0,
+      "BEDOK": 70067.0,
+      "BISHAN": 104265.0,
+      "BUKIT BATOK": 50681.0,
+      "BUKIT MERAH": 89386.0,
+      "BUKIT PANJANG": 68926.0,
+      "BUKIT TIMAH": 121358.0,
+      "CENTRAL AREA": 127653.0,
+      "CHOA CHU KANG": 55906.0,
+      "CLEMENTI": 92216.0,
+      "GEYLANG": 82742.0,
+      "HOUGANG": 67750.0,
+      "JURONG EAST": 57150.0,
+      "JURONG WEST": 57010.0,
+      "KALLANG/WHAMPOA": 91712.0,
+      "MARINE PARADE": 88285.0,
+      "PASIR RIS": 75369.0,
+      "PUNGGOL": 72185.0,
+      "QUEENSTOWN": 101483.0,
+      "SEMBAWANG": 69537.0,
+      "SENGKANG": 78419.0,
+      "SERANGOON": 90345.0,
+      "TAMPINES": 78722.0,
+      "TOA PAYOH": 98829.0,
+      "WOODLANDS": 61526.0,
+      "YISHUN": 56149.0
+    },
+    "mae_by_flat_type": {
+      "1 ROOM": 10179.0,
+      "2 ROOM": 40931.0,
+      "3 ROOM": 54534.0,
+      "4 ROOM": 74681.0,
+      "5 ROOM": 85278.0,
+      "EXECUTIVE": 93666.0,
+      "MULTI-GENERATION": 273193.0
+    }
+  },
+  "baseline_median_test_metrics": {
+    "mae": 192209.21726786302,
+    "median_ae": 168000.0,
+    "n": 36444
+  },
+  "beats_baseline": true
+}

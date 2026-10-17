@@ -1,0 +1,85 @@
+"""Central application configuration.
+
+Single source of truth for environment-driven settings (12-factor style). Everything else in
+the codebase reads configuration through this module instead of calling ``os.environ`` directly,
+so behavior stays testable and swappable (Dependency Inversion: callers depend on ``Settings``,
+not on the environment).
+"""
+
+from __future__ import annotations
+
+from functools import lru_cache
+from pathlib import Path
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+BACKEND_ROOT = Path(__file__).resolve().parent.parent.parent
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=str(BACKEND_ROOT / ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    # --- Core ---
+    homerun_env: str = "development"
+    homerun_debug: bool = True
+    homerun_secret_key: str = "change-me-in-production"
+    homerun_build_sha: str = "dev"
+
+    # --- Database ---
+    homerun_database_url: str = f"sqlite:///{(BACKEND_ROOT / 'data' / 'homerun.db').as_posix()}"
+
+    # --- Listing provider (Dependency Inversion: orchestrator only knows the interface) ---
+    listing_provider: str = "demo_fixture"  # "demo_fixture" | "authorized"
+    parse_bot_base_url: str | None = None
+    parse_bot_api_key: str | None = None
+    # Bounded so a live sync has a predictable worst-case latency instead of scraping the whole
+    # marketplace on every bootstrap (PRD section 6: "Cache with TTL and provenance").
+    parse_bot_max_search_pages: int = 2
+    parse_bot_include_rent: bool = True
+    parse_bot_detail_enrich_limit: int = 20
+    # Parse.bot bills per call with a daily quota; skip re-syncing on every bootstrap (e.g. every
+    # `--reload` restart in dev) while the cached catalog is still within this TTL.
+    parse_bot_sync_ttl_minutes: int = 30
+
+    # --- LLM provider ---
+    llm_provider: str = "template"  # "template" | "gemini" | "groq"
+    gemini_api_key: str | None = None
+    groq_api_key: str | None = None
+
+    # --- Session / retention (PRD section 9: Security and privacy) ---
+    session_ttl_hours: int = 24
+
+    # --- CORS ---
+    homerun_cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+
+    # --- Handoff policy (PRD section 16 open decision: "Decide whether direct lead submission
+    # is authorized. Default: original listing contact link.") ---
+    direct_lead_submission_enabled: bool = False
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [origin.strip() for origin in self.homerun_cors_origins.split(",") if origin.strip()]
+
+    @property
+    def is_sqlite(self) -> bool:
+        return self.homerun_database_url.startswith("sqlite")
+
+    @property
+    def fixtures_dir(self) -> Path:
+        return BACKEND_ROOT / "app" / "fixtures"
+
+    @property
+    def ml_artifacts_dir(self) -> Path:
+        path = BACKEND_ROOT / "app" / "ml" / "artifacts"
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+
+@lru_cache
+def get_settings() -> Settings:
+    """Cached settings singleton; tests can call ``get_settings.cache_clear()`` to reload."""
+    return Settings()

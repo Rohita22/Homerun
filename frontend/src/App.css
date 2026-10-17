@@ -1,0 +1,414 @@
+.app-shell {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  grid-template-rows: auto 1fr;
+  gap: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+.app-header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.steps {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.step {
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.step.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  font-weight: 600;
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+}
+
+.card h2 {
+  margin-top: 0;
+}
+
+.inline-card {
+  margin-top: 1rem;
+  background: #fbfbfe;
+}
+
+.inline-card.ok {
+  border-color: var(--ok);
+}
+
+.inline-card.fail {
+  border-color: var(--error);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 0.82rem;
+}
+
+.error {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.hint {
+  background: #eef2ff;
+  border: 1px solid #c8d4ff;
+  padding: 0.6rem 0.9rem;
+  border-radius: 8px;
+}
+
+.warnings {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  border: 1px solid #f0d98c;
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem 0.6rem 1.6rem;
+  margin: 0.75rem 0;
+  font-size: 0.85rem;
+}
+
+.row {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+button {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.55rem 1.1rem;
+  font-weight: 600;
+}
+
+button:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button.ghost {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--border);
+}
+
+button.ghost:hover:not(:disabled) {
+  background: #eef2ff;
+}
+
+textarea,
+input[type="text"],
+input[type="number"],
+select {
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: white;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.9rem;
+  margin: 1rem 0;
+}
+
+.form-grid label,
+.card > label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.span-2 {
+  grid-column: span 2;
+}
+
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 1rem 0;
+  padding: 0.8rem 1rem;
+}
+
+legend {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--muted);
+  padding: 0 0.4rem;
+}
+
+label.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 400;
+  color: var(--text);
+  font-size: 0.9rem;
+  margin: 0.3rem 0;
+}
+
+label.checkbox.consent {
+  background: #fff3e0;
+  border: 1px solid #ffd79a;
+  padding: 0.6rem 0.9rem;
+  border-radius: 8px;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.result-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+  background: #fcfcff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.result-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.result-card h3 {
+  margin: 0.2rem 0 0;
+  font-size: 1rem;
+}
+
+.rank {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.price {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0.2rem 0;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.badge-ok {
+  background: #e4f7ec;
+  color: var(--ok);
+  border: 1px solid #b7e8cc;
+}
+
+.badge-muted {
+  background: #f0f1f5;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.reasons {
+  margin: 0.3rem 0;
+  padding-left: 1.1rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.compare-table th,
+.compare-table td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.7rem;
+  text-align: left;
+  font-size: 0.88rem;
+}
+
+.compare-table th {
+  background: #f3f5fa;
+}
+
+.evidence-panel {
+  background: #111528;
+  color: #c8ceea;
+  border-radius: 12px;
+  padding: 1rem;
+  height: fit-content;
+  position: sticky;
+  top: 1.5rem;
+  font-size: 0.8rem;
+}
+
+.evidence-panel h4 {
+  margin-top: 0;
+  color: white;
+}
+
+.evidence-panel ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.evidence-panel code {
+  background: #262c4a;
+  color: #9fb3ff;
+}
+
+.orchestration-trace {
+  background: #fcfcff;
+}
+
+.orchestration-trace h4 {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+}
+
+.trace-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.trace-step {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+}
+
+.trace-step-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.trace-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.trace-status-ok {
+  background: var(--ok);
+}
+
+.trace-status-degraded {
+  background: #d98c00;
+}
+
+.trace-status-error {
+  background: var(--error);
+}
+
+.trace-name {
+  font-weight: 600;
+  font-size: 0.88rem;
+  flex: 1;
+}
+
+.trace-ms {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-family: ui-monospace, monospace;
+}
+
+.trace-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+  font-size: 0.78rem;
+}
+
+.trace-warnings {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.78rem;
+  color: var(--warn-text);
+}
+
+.trace-total {
+  margin: 0.5rem 0 0;
+  text-align: right;
+}
+
+@media (max-width: 860px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+  .evidence-panel {
+    position: static;
+  }
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .span-2 {
+    grid-column: span 1;
+  }
+}

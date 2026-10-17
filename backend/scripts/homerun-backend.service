@@ -1,0 +1,15 @@
+[Unit]
+Description=Homerun FastAPI backend (IBM Z Datathon 2026)
+After=network.target
+
+[Service]
+Type=simple
+User=homerun
+WorkingDirectory=/opt/homerun/backend
+EnvironmentFile=/opt/homerun/backend/.env
+ExecStart=/opt/homerun/backend/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

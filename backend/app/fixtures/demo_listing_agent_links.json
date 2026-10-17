@@ -1,0 +1,11 @@
+[
+  {"listing_id": "fixture-101", "agent_id": "agent-01", "evidence_source": "demo_fixture_provider", "association_status": "verified"},
+  {"listing_id": "fixture-102", "agent_id": "agent-02", "evidence_source": "demo_fixture_provider", "association_status": "verified"},
+  {"listing_id": "fixture-103", "agent_id": "agent-01", "evidence_source": "demo_fixture_provider", "association_status": "verified"},
+  {"listing_id": "fixture-104", "agent_id": "agent-03", "evidence_source": "demo_fixture_provider", "association_status": "unverified"},
+  {"listing_id": "fixture-106", "agent_id": "agent-02", "evidence_source": "demo_fixture_provider", "association_status": "verified"},
+  {"listing_id": "fixture-107", "agent_id": "agent-03", "evidence_source": "demo_fixture_provider", "association_status": "verified"},
+  {"listing_id": "fixture-108", "agent_id": "agent-01", "evidence_source": "demo_fixture_provider", "association_status": "verified"},
+  {"listing_id": "fixture-109", "agent_id": "agent-02", "evidence_source": "demo_fixture_provider", "association_status": "verified"},
+  {"listing_id": "fixture-201", "agent_id": "agent-04", "evidence_source": "demo_fixture_provider", "association_status": "verified"}
+]
