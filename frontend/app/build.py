@@ -77,7 +77,7 @@ TEXT_BINDINGS = [
     ("flex:3 1 640px;position:relative;min-height:440px", "flex:3 1 640px;position:relative;min-height:600px;isolation:isolate"),
     (
         """<div style="display:flex;gap:6px"><sc-if value="{{ hub.filtered }}" """,
-        """<div style="display:flex;gap:6px"><button onClick="{{ openCmpV }}" aria-label="Compare viewings and notes" style="border:0;background:var(--soft);border-radius:999px;padding:11px 16px;cursor:pointer;font-size:14px;font-weight:500;white-space:nowrap">⇆ Compare</button><sc-if value="{{ hub.filtered }}" """,
+        """<div style="display:flex;gap:6px"><button onClick="{{ openCmpV }}" aria-label="Compare viewings and notes" style="border:0;background:var(--soft);border-radius:999px;padding:11px 16px;cursor:pointer;font-size:14px;font-weight:500;white-space:nowrap">⇆ Compare</button><button onClick="{{ openPack }}" aria-label="Download my needs pack for a realtor" style="border:0;background:var(--g-butter);color:var(--on);border-radius:999px;padding:11px 16px;cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap">⬇ Needs pack</button><sc-if value="{{ hub.filtered }}" """,
     ),
     # --- the remaining photo placeholders: compare, A/B refine, interest, my-move shortlist ----------
     (

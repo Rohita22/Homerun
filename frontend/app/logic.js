@@ -286,6 +286,99 @@ class ViewCompare{
   }
 }
 
+// ---- "My needs pack": everything about the move in one page a human realtor can read, print or paste ----
+class NeedsPack{
+  constructor(owner){this.o=owner;this.root=null;this.key=e=>{if(e.key==='Escape')this.close();};
+    try{this.me=JSON.parse(localStorage.getItem('homerun_pack_me')||'{}');}catch(e){this.me={};}}
+  data(){
+    const o=this.o,s=o.state,rk=o.ranked();
+    const likedIds=Object.keys(s.like).filter(k=>s.like[k]);
+    const ids=likedIds.length?likedIds:rk.slice(0,3).map(r=>r.l.id);
+    const homes=ids.map(id=>{const l=o.get(id),r=rk.find(x=>x.l.id===id);return {l,score:r?r.score:null,reasons:r?(r.reasons||[]).map(x=>x.text):[]};}).filter(h=>h.l&&h.l.id);
+    const P=s.budget*(1-s.dp/100),m=s.rate/1200,n=s.ten*12;const monthly=m?P*m/(1-Math.pow(1+m,-n)):P/n;
+    const views=[...o.vlist()].sort((a,b)=>a.at-b.at).map(v=>{const h=o.get(v.home),good=[],bad=[];(v.photos||[]).forEach(p=>{if(p.obs){(p.obs.good||[]).forEach(t=>good.push(t));(p.obs.bad||[]).forEach(t=>bad.push(t));}});
+      return {v,h,good,bad,done:CHK_LIST.filter(c=>v.check&&v.check[c[0]]).map(c=>c[1]),todo:CHK_LIST.filter(c=>!(v.check&&v.check[c[0]])).map(c=>c[1])};});
+    const said=(s.convo||[]).filter(m=>m.u).map(m=>m.text);
+    return {s,homes,views,said,monthly,types:['HDB','Condo'].filter(x=>s.types[x]),towns:TOWNS.filter(x=>s.towns[x]),
+      weights:SOFT.map(o2=>({label:o2.label,val:s.w[o2.k]})).sort((a,b)=>b.val-a.val),workplace:(s.cfg&&s.cfg.workplace)||'Raffles Place'};
+  }
+  wordOf(v){return v===0?'not a factor':v<=4?'a little':v<=6?'matters':'matters a lot';}
+  questions(d){
+    const q=[];
+    d.homes.forEach(h=>{const l=h.l,nm=l.name,u=[];
+      if(l.lease==null)u.push('remaining lease');if(l.floor==null)u.push('floor level');if(l.mrt==null)u.push('walking time to MRT');if(l.area==null)u.push('floor area');
+      if(u.length)q.push(`${nm}: confirm ${u.join(', ')} (not stated in the listing).`);
+      if(l.val&&l.price>l.val.hi)q.push(`${nm}: asking is above our estimated range (${k$(l.val.lo)}–${k$(l.val.hi)}); is there room to negotiate?`);});
+    d.views.forEach(x=>{if(x.bad.length)q.push(`${x.h.name}: after viewing — ${x.bad.slice(0,3).join('; ')}. Can this be addressed or priced in?`);});
+    q.push('Which financing and CPF/grant rules apply to me for each of these (HDB vs condo)?');
+    q.push('Are there similar homes nearby that fit these must-haves and are not yet in my shortlist?');
+    return q;
+  }
+  me2(){return this.me||{};}
+  html(){
+    const d=this.data(),e=escH,me=this.me2(),today=new Date().toLocaleDateString('en-SG',{day:'numeric',month:'long',year:'numeric'});
+    const sec=(t,b)=>`<section><h2>${t}</h2>${b}</section>`;
+    const contact=[me.name,me.phone,me.email].filter(Boolean).map(e).join(' · ');
+    const must=`<table class="kv"><tr><th>Budget (max)</th><td>${full$(d.s.budget)}${d.s.budget>=5e6?' (no cap)':''}</td></tr><tr><th>Property type</th><td>${e(d.types.join(' or ')||'not chosen')}</td></tr><tr><th>Preferred towns</th><td>${e(d.towns.join(', ')||'not chosen')}</td></tr><tr><th>Bedrooms</th><td>${d.s.minBed}+</td></tr><tr><th>Commute to</th><td>${e(d.workplace)} (shorter is better; estimated, not routed)</td></tr><tr><th>Finance assumptions</th><td>${d.s.dp}% down · ${d.s.rate.toFixed(1)}% interest · ${d.s.ten} years → about ${full$(d.monthly)}/month at the top of budget <span class="mute">(indicative, not a loan approval)</span></td></tr></table>`;
+    const pri=`<div class="bars">${d.weights.map(w=>`<div class="bar"><span>${e(w.label)}</span><i><b style="width:${w.val*10}%"></b></i><em>${e(this.wordOf(w.val))}</em></div>`).join('')}</div>`;
+    const said=d.said.length?`<ul>${d.said.map(t=>`<li>“${e(t)}”</li>`).join('')}</ul>`:'';
+    const homes=d.homes.length?d.homes.map(h=>{const l=h.l,u=l.thumb||(l.photos&&l.photos[0])||'';
+      const facts=[l.type,l.beds!=null?l.beds+' bd':null,l.area!=null?l.area+' m²':null,l.floor,l.tenure,l.lease?l.lease+' lease left':null,l.mrt!=null?l.mrt+' min to MRT':null,l.commute!=null?'~'+l.commute+' min commute':null].filter(Boolean).join(' · ');
+      return `<div class="home">${u?`<img src="${e(u)}" alt="">`:'<div class="noimg"></div>'}<div><h3>${e(l.name)} <span class="price">${full$(l.price)}</span></h3><p class="mute">${e(l.town||'')}${h.score!=null?' · '+h.score+' match':''}${l.val?` · est. value ${k$(l.val.lo)}–${k$(l.val.hi)}`:''}</p><p>${e(facts)}</p>${h.reasons.length?`<p class="tags">${h.reasons.map(t=>`<span>${e(t)}</span>`).join('')}</p>`:''}<p class="mute">Listing ${e(l.id)}${l.source_url?` · <a href="${e(l.source_url)}">source listing</a>`:''}</p></div></div>`;}).join(''):'<p class="mute">No homes shortlisted yet.</p>';
+    const views=d.views.length?d.views.map(x=>{const w=new Date(x.v.at);return `<div class="view"><h3>${e(x.h.name)} <span class="mute">· ${e(WD[w.getDay()]+' '+w.getDate()+' '+MO[w.getMonth()]+', '+pad(w.getHours())+':'+pad(w.getMinutes()))}</span></h3>${x.v.notes&&x.v.notes.trim()?`<p class="notes">${e(x.v.notes)}</p>`:'<p class="mute">No notes taken.</p>'}<p>${x.done.length?`<b>Checked:</b> ${e(x.done.join('; '))}. `:''}${x.todo.length?`<span class="mute">Not yet checked: ${e(x.todo.join('; '))}.</span>`:''}</p>${x.good.length?`<p><b class="g">+</b> ${e(x.good.join(' · '))}</p>`:''}${x.bad.length?`<p><b class="r">−</b> ${e(x.bad.join(' · '))}</p>`:''}</div>`;}).join(''):'<p class="mute">No viewings planned yet.</p>';
+    const qs=`<ol>${this.questions(d).map(t=>`<li>${e(t)}</li>`).join('')}</ol>`;
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>My needs pack — ${today}</title><style>
+      *{box-sizing:border-box}body{margin:0;padding:32px;font:14.5px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#17171c;background:#fff}
+      main{max-width:820px;margin:0 auto}header{border-bottom:3px solid #17171c;padding-bottom:14px;margin-bottom:6px}h1{margin:0;font-size:34px;letter-spacing:-.03em}header p{margin:4px 0 0;color:#666}
+      h2{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#666;margin:26px 0 8px;border-bottom:1px solid #ddd;padding-bottom:5px}h3{margin:0;font-size:16px}
+      table.kv{width:100%;border-collapse:collapse}.kv th{text-align:left;width:170px;vertical-align:top;padding:6px 10px 6px 0;color:#555;font-weight:600}.kv td{padding:6px 0}
+      .mute{color:#777}.price{font-weight:700;margin-left:6px}.bars{display:grid;gap:7px}.bar{display:grid;grid-template-columns:130px 1fr 110px;gap:10px;align-items:center}.bar i{height:9px;border-radius:6px;background:#eee;overflow:hidden;display:block}.bar b{display:block;height:100%;background:#17171c}.bar em{font-style:normal;color:#555}
+      .home{display:grid;grid-template-columns:170px 1fr;gap:14px;padding:12px 0;border-top:1px solid #eee;break-inside:avoid}.home img,.noimg{width:170px;height:112px;object-fit:cover;border-radius:10px;background:#eee}.home p{margin:3px 0}
+      .tags span{display:inline-block;margin:2px 5px 2px 0;padding:2px 9px;border-radius:99px;background:#e4f7ee;font-size:12.5px}.view{padding:10px 0;border-top:1px solid #eee;break-inside:avoid}.view p{margin:4px 0}.notes{white-space:pre-wrap;background:#f6f6f8;border-radius:8px;padding:8px 10px}.g{color:#18875a}.r{color:#c0394f}
+      ul,ol{margin:6px 0;padding-left:22px}li{margin:3px 0}footer{margin-top:30px;padding-top:12px;border-top:1px solid #ddd;color:#777;font-size:12.5px}a{color:#17171c}
+      @media print{body{padding:0}@page{margin:16mm}}</style></head><body><main>
+      <header><h1>My needs pack</h1><p>Prepared ${e(today)} with Homerun for a human realtor${contact?` · <b style="color:#17171c">${contact}</b>`:''}</p></header>
+      ${sec('Must-haves',must)}${sec('What matters most (in order of weight)',pri)}${d.said.length?sec('In my own words',said):''}
+      ${sec('Shortlisted homes ('+d.homes.length+')',homes)}${sec('Viewings & notes ('+d.views.length+')',views)}${sec('Questions I would like help with',qs)}
+      <footer>Figures are indicative: prices are asking prices from public listings, value ranges are estimates, and monthly payments are not a loan approval. Commute is a straight-line estimate, not a routed journey. Nothing here has been shared with an agent until I send it.</footer></main></body></html>`;
+  }
+  text(){
+    const d=this.data(),me=this.me2(),L=[];
+    L.push('MY NEEDS PACK — '+new Date().toLocaleDateString('en-SG'));if(me.name||me.phone||me.email)L.push([me.name,me.phone,me.email].filter(Boolean).join(' · '));
+    L.push('','MUST-HAVES','- Budget: up to '+full$(d.s.budget)+(d.s.budget>=5e6?' (no cap)':''),'- Type: '+(d.types.join(' or ')||'not chosen'),'- Towns: '+(d.towns.join(', ')||'not chosen'),'- Bedrooms: '+d.s.minBed+'+','- Finance: '+d.s.dp+'% down, '+d.s.rate.toFixed(1)+'%, '+d.s.ten+' yrs ≈ '+full$(d.monthly)+'/month at top of budget (indicative)');
+    L.push('','WHAT MATTERS',...d.weights.map(w=>'- '+w.label+': '+this.wordOf(w.val)));
+    if(d.said.length)L.push('','IN MY OWN WORDS',...d.said.map(t=>'- "'+t+'"'));
+    L.push('','SHORTLIST',...(d.homes.length?d.homes.map(h=>'- '+h.l.name+' — '+full$(h.l.price)+' ('+(h.l.town||'')+')'+(h.l.source_url?' '+h.l.source_url:'')):['- none yet']));
+    if(d.views.length){L.push('','VIEWINGS & NOTES');d.views.forEach(x=>{L.push('- '+x.h.name+': '+((x.v.notes||'').trim().replace(/\n+/g,' / ')||'no notes')+(x.bad.length?' | concerns: '+x.bad.join('; '):''));});}
+    L.push('','QUESTIONS',...this.questions(d).map((t,i)=>(i+1)+'. '+t));
+    return L.join('\n');
+  }
+  open(){
+    if(!this.root){this.root=document.createElement('div');this.root.id='hr-pack';this.root.setAttribute('role','dialog');this.root.setAttribute('aria-label','My needs pack');document.body.appendChild(this.root);}
+    window.addEventListener('keydown',this.key);this.draw();
+  }
+  close(){window.removeEventListener('keydown',this.key);if(this.root){this.root.remove();this.root=null;}}
+  save(){try{localStorage.setItem('homerun_pack_me',JSON.stringify(this.me));}catch(e){}}
+  download(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([this.html()],{type:'text/html'}));a.download='homerun-needs-pack-'+new Date().toISOString().slice(0,10)+'.html';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
+  async copy(btn){const t=this.text();try{await navigator.clipboard.writeText(t);}catch(e){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(_){}ta.remove();}const old=btn.textContent;btn.textContent='Copied ✓';setTimeout(()=>{btn.textContent=old;},1600);}
+  draw(){
+    if(!this.root)return;const me=this.me2(),e=escH;
+    const inp=(k,ph,type)=>`<input data-k="${k}" type="${type||'text'}" placeholder="${ph}" value="${e(me[k]||'')}" style="flex:1 1 150px;min-width:0;border:0;border-radius:999px;padding:11px 16px;font:14px system-ui;background:var(--soft);color:var(--ink);outline:none">`;
+    const btn=(id,label,primary)=>`<button data-a="${id}" style="border:0;border-radius:999px;padding:12px 20px;cursor:pointer;font:600 14.5px system-ui;background:${primary?'var(--ink)':'var(--soft)'};color:${primary?'var(--bg)':'var(--ink)'}">${label}</button>`;
+    this.root.innerHTML=`<div data-bg="1" style="position:fixed;inset:0;z-index:10000;background:oklch(0.15 0.02 280 / .55);backdrop-filter:blur(6px);display:flex;justify-content:center;align-items:flex-start;overflow-y:auto;padding:3vh 16px"><div style="width:min(980px,100%);background:var(--bg);color:var(--ink);border-radius:32px;padding:clamp(16px,2.6vw,28px);box-shadow:0 30px 80px rgb(0 0 0/.35);display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h2 style="margin:0;font:700 clamp(26px,3vw,38px) system-ui;letter-spacing:-.045em">My needs pack</h2><button data-a="close" aria-label="Close" style="border:0;background:var(--soft);color:var(--ink);width:42px;height:42px;border-radius:50%;cursor:pointer;font-size:18px">✕</button></div>
+      <div style="font:14px system-ui;color:var(--muted)">One page with your must-haves, priorities, shortlist, viewing notes and open questions, to hand to a human realtor. Add contact details if you want them on it. They stay on this device.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${inp('name','Your name (optional)')}${inp('phone','Phone (optional)','tel')}${inp('email','Email (optional)','email')}</div>
+      <iframe title="Needs pack preview" style="width:100%;height:58vh;border:1.5px solid var(--line);border-radius:18px;background:#fff"></iframe>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${btn('print','Save as PDF / print',1)}${btn('download','Download .html')}<button data-a="copy" style="border:0;border-radius:999px;padding:12px 20px;cursor:pointer;font:600 14.5px system-ui;background:var(--soft);color:var(--ink)">Copy as text</button></div>
+    </div></div>`;
+    const fr=this.root.querySelector('iframe');fr.srcdoc=this.html();
+    this.root.querySelectorAll('input[data-k]').forEach(i=>i.oninput=()=>{this.me[i.dataset.k]=i.value.trim();this.save();clearTimeout(this.ft);this.ft=setTimeout(()=>{fr.srcdoc=this.html();},250);});
+    this.root.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{const a=b.dataset.a;if(a==='close')this.close();else if(a==='download')this.download();else if(a==='copy')this.copy(b);else if(a==='print'){try{fr.contentWindow.focus();fr.contentWindow.print();}catch(err){this.download();}}});
+    const bg=this.root.querySelector('[data-bg]');bg.onclick=ev=>{if(ev.target===bg)this.close();};
+  }
+}
+
 class Component extends DCLogic {
   state={calM:0,drag2:false,viewings:[],selV:null,dayF:null,add:null,pal:false,pq:'',pi:0,enq:[],deckIdx:0,drag:0,dragging:false,fly:0,passedM:{},mode:'chat',vstate:'idle',vtext:'',screen:null,theme:null,evidence:false,mn:false,chat:0,draft:'',ti:0,budget:900000,budgetInput:'900,000',types:{HDB:true,Condo:true},towns:{Bishan:true,Tampines:true,Queenstown:true},minBed:3,w:{commute:8,mrt:5,area:3,price:3},view:'list',exp:null,cmp:[],like:{},sel:null,interestId:null,dp:25,rate:3,ten:25,checks:0,fields:{name:true,email:true,phone:false,message:true},consent:false,outcome:'submitted',fbPick:null,fbTags:{},banner:null,showExcluded:false,
     convo:[],quick:[],askText:'',vline:null,vchips:[],lastLlm:null,inv:{},match:null,apiDown:false,heard:null,chips:[],askReply:'',doneReply:'',noAsk:false,chatWarn:[],traces:{},cfg:null,health:null,metrics:null,fin:null,pidx:{},cmpData:null,interestData:null,outcomeData:null,visionOk:true};
@@ -309,13 +402,14 @@ class Component extends DCLogic {
     this.sysTimer=setInterval(()=>{if(this.dev&&this.dev.on)this.loadSystem(true);},5000);
     this.boot();
   }
-  componentWillUnmount(){this.stopVoice();clearInterval(this.tt);clearInterval(this.sysTimer);clearInterval(this.mapTimer);try{this.cvc&&this.cvc.close();}catch(e){}try{this.mv&&this.mv.destroy();}catch(e){}try{this.dev&&this.dev.destroy();}catch(e){}(this.timers||[]).forEach(clearTimeout);window.removeEventListener('keydown',this.kd);}
+  componentWillUnmount(){this.stopVoice();clearInterval(this.tt);clearInterval(this.sysTimer);clearInterval(this.mapTimer);try{this.cvc&&this.cvc.close();}catch(e){}try{this.pack&&this.pack.close();}catch(e){}try{this.mv&&this.mv.destroy();}catch(e){}try{this.dev&&this.dev.destroy();}catch(e){}(this.timers||[]).forEach(clearTimeout);window.removeEventListener('keydown',this.kd);}
   componentDidUpdate(pp){if(pp.defaultTheme!==this.props.defaultTheme)this.applyTheme(this.props.defaultTheme||'light');if(pp.startScreen!==this.props.startScreen&&this.props.startScreen)this.go(this.props.startScreen);}
   devData(){const now=Date.now(),bucket=t=>{const d=now-t;return d<4000?'now':d<15000?'seconds ago':d<60000?'<1m ago':Math.round(d/60000)+'m ago';};const fresh={};Object.keys(AGENT_AT).forEach(k=>{if(now-AGENT_AT[k]<4000)fresh[k]=1;});
     const feed=DEV.feed.slice(-8).reverse().map(f=>({agent:f.agent,label:AGENT_LABEL[f.agent]||f.agent,via:f.via,ms:f.ms==null?null:Math.round(f.ms),status:f.status,age:bucket(f.t),fresh:now-f.t<3000}));
     const s=this.state,TR=s.traces||{},by={};[...(TR.chat||[]),...(TR.match||[]),...(TR.finance||[])].forEach(x=>{by[x.agent_name]={status:x.status,elapsed_ms:x.elapsed_ms};});
     return {agents:by,fresh,feed,calls:DEV.calls.slice(-30).map(c=>({method:c.method,path:c.path,ms:c.ms,status:c.status})),models:(s.cfg&&s.cfg.models)||{},health:s.health&&{valuation_model_version:s.health.valuation_model_version,valuation_model_is_trained:s.health.valuation_model_is_trained,architecture:s.health.architecture,listing_catalog_size:s.health.listing_catalog_size},
       metrics:s.metrics&&{request_count:s.metrics.request_count,error_count:s.metrics.error_count,p50_latency_ms:s.metrics.p50_latency_ms,p95_latency_ms:s.metrics.p95_latency_ms},lastLlm:s.lastLlm,voice:{state:s.vstate,events:DEV.events.filter(e=>e.kind==='voice').slice(-6).map(e=>({text:e.text}))},apiDown:s.apiDown,runId:s.match?String(s.match.run_id).slice(0,8):''};}
+  openPack(){this.setState({pal:false});if(!this.pack)this.pack=new NeedsPack(this);this.pack.open();}
   openCmpV(){this.setState({pal:false});if(!this.cvc)this.cvc=new ViewCompare(this);this.cvc.open();}
   openFromMap(id){this.setState({sel:id});this.go('detail');}
   tickMap(){
@@ -722,7 +816,7 @@ class Component extends DCLogic {
       add.cant=!AD.home;add.op=AD.home?1:0.4;
       add.save=()=>{const [hh,mm]=AD.time.split(':').map(Number);const t=new Date(base.getTime()+AD.day*864e5);t.setHours(hh,mm);
         api.post('/ui/viewings',{session_id:SID,listing_id:AD.home,at_ms:t.getTime(),status:'self'}).then(v=>{this.setV(vs=>[...vs,v]);this.setState({add:null,selV:v.id,dayF:null});if(this.cur()!=='hub')this.go('hub');}).catch(e=>{this.setState({add:null});this.fail(e,'Could not save viewing');});};}
-    const ACT=[['★','My move — viewings & plan','M',()=>this.go('hub'),'var(--g-mint)'],['＋','Add a viewing','V',()=>this.openAdd(),'var(--g-lav)'],['◉','Viewing notes & photos','',()=>this.go('notes'),'var(--g-rose)'],['✎','Describe a home (chat)','',()=>{this.setState({mode:'chat'});this.go('chat');},'var(--soft)'],['●','Talk to Homi (voice)','',()=>{this.setState({mode:'voice'});this.go('chat');},'var(--g-lav)'],['◧','Edit profile','',()=>this.go('prefs'),'var(--soft)'],['♥','See matches','',()=>this.go('results'),'var(--g-mint)'],['⇆','Compare homes','',()=>this.go('compare'),'var(--soft)'],['◫','Compare viewings & notes','',()=>this.openCmpV(),'var(--g-rose)'],['☾','Toggle light / dark','T',()=>this.toggleTheme({clientX:innerWidth/2,clientY:120}),'var(--g-butter)'],['⌁','System evidence','E',()=>{this.setState({evidence:true});this.loadSystem();},'var(--soft)']];
+    const ACT=[['★','My move — viewings & plan','M',()=>this.go('hub'),'var(--g-mint)'],['＋','Add a viewing','V',()=>this.openAdd(),'var(--g-lav)'],['◉','Viewing notes & photos','',()=>this.go('notes'),'var(--g-rose)'],['✎','Describe a home (chat)','',()=>{this.setState({mode:'chat'});this.go('chat');},'var(--soft)'],['●','Talk to Homi (voice)','',()=>{this.setState({mode:'voice'});this.go('chat');},'var(--g-lav)'],['◧','Edit profile','',()=>this.go('prefs'),'var(--soft)'],['♥','See matches','',()=>this.go('results'),'var(--g-mint)'],['⇆','Compare homes','',()=>this.go('compare'),'var(--soft)'],['◫','Compare viewings & notes','',()=>this.openCmpV(),'var(--g-rose)'],['⬇','Download my needs pack (for a realtor)','',()=>this.openPack(),'var(--g-butter)'],['☾','Toggle light / dark','T',()=>this.toggleTheme({clientX:innerWidth/2,clientY:120}),'var(--g-butter)'],['⌁','System evidence','E',()=>{this.setState({evidence:true});this.loadSystem();},'var(--soft)']];
     const q=(s.pq||'').toLowerCase().trim();const fl=ACT.filter(a=>!q||a[1].toLowerCase().includes(q));const pi=Math.min(s.pi,Math.max(0,fl.length-1));
     const runA=a=>{this.setState({pal:false,pq:''});a[3]();};
     const pal={open:s.pal,q:s.pq,ref:el=>{this.palRef=el;},close:()=>this.setState({pal:false}),none:!fl.length,onQ:e=>this.setState({pq:e.target.value,pi:0}),
@@ -733,7 +827,7 @@ class Component extends DCLogic {
     // handoff: sending an enquiry needs a verified, authorised agent contact; otherwise open the source listing
     const record=(channel,consent)=>api.post('/ui/handoff',{session_id:SID,listing_id:il.id,channel,consent,fields:Object.keys(s.fields).filter(k=>s.fields[k])});
     const finish=r=>{this.setState({outcome:r.outcome,outcomeData:r});this.go('outcome');this.loadHub();};
-    return {printAttr:PM?'1':'0',heroMinH:PM?'860px':'calc(100vh - 100px)',scrMinH:PM?'0px':'calc(100vh - 240px)',cal,nt,logoLight:this.theme()==='dark'?'none':'block',logoDark:this.theme()==='dark'?'block':'none',hub,add,pal,openAdd:()=>this.openAdd(),openPalette:()=>this.openPal(),goHub:()=>this.go('hub'),openCmpV:()=>this.openCmpV(),hubBtn:{n:upN,bg:scr==='hub'?'var(--ink)':'var(--soft)',color:scr==='hub'?'var(--bg)':'var(--ink)'},
+    return {printAttr:PM?'1':'0',heroMinH:PM?'860px':'calc(100vh - 100px)',scrMinH:PM?'0px':'calc(100vh - 240px)',cal,nt,logoLight:this.theme()==='dark'?'none':'block',logoDark:this.theme()==='dark'?'block':'none',hub,add,pal,openAdd:()=>this.openAdd(),openPalette:()=>this.openPal(),goHub:()=>this.go('hub'),openCmpV:()=>this.openCmpV(),openPack:()=>this.openPack(),hubBtn:{n:upN,bg:scr==='hub'?'var(--ink)':'var(--soft)',color:scr==='hub'?'var(--bg)':'var(--ink)'},
       planFromOutcome:()=>{this.go('hub');this.openAdd(il.id);},planFromDetail:()=>this.openAdd(l.id),deck,onLook:e=>{const r=e.currentTarget.getBoundingClientRect();const x=Math.max(-1,Math.min(1,(e.clientX-(r.left+r.width/2))/(r.width/2))),y=Math.max(-1,Math.min(1,(e.clientY-(r.top+r.height*0.38))/(r.height/2)));if(this.lk)return;this.lk=requestAnimationFrame(()=>{this.lk=null;this.setState({look:{x:Math.round(x*9),y:Math.round(y*6)}});});},v,vo,modes,isChat:s.mode==='chat',isVoice:s.mode==='voice',goVoice:()=>{this.setState({mode:'voice'});this.go('chat');this.later(()=>this.startVoice(),450);},is,steps,showSteps:scr!=='landing',evidence:s.evidence,toggleEvidence:()=>{this.setState({evidence:!s.evidence});this.loadSystem();},
       toggleTheme:e=>this.toggleTheme(e),isDark:this.theme()==='dark',knob:this.theme()==='dark'?'37px':'3px',sunColor:this.theme()==='dark'?'var(--bg)':'var(--ink)',moonColor:this.theme()==='dark'?'var(--ink)':'var(--bg)',
       srcLabel,srcDot:s.apiDown?'var(--rose)':'var(--mint)',srcTitle:s.apiDown?'Backend unreachable':('Live inventory: scraped PropertyGuru listings'+(refreshed?', refreshed '+timeAgo(refreshed):'')),
