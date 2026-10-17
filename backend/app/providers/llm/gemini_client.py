@@ -10,6 +10,7 @@ deterministic path (template extractor / "couldn't read this one").
 
 from __future__ import annotations
 
+import re
 import threading
 import time
 
@@ -38,6 +39,15 @@ def _skipped(model: str) -> bool:
 def _skip(model: str, seconds: float) -> None:
     with _lock:
         _skip_until[model] = time.monotonic() + seconds
+
+
+def _retry_note(body: str) -> str | None:
+    """'Please retry in 1h33m27.4s' -> '1h 33m' (a readable hint for the buyer)."""
+    m = re.search(r"retry in (?:(\d+)h)?(?:(\d+)m)?([\d.]+)s", body or "")
+    if not m:
+        return None
+    h, mins = int(m.group(1) or 0), int(m.group(2) or 0)
+    return f"{h}h {mins}m" if h else (f"{mins}m" if mins else "a minute")
 
 
 class GeminiClient:
@@ -69,6 +79,7 @@ class GeminiClient:
                     logger.warning("gemini_model_not_found model=%s trying_next", model)
                 elif status == 429:
                     _skip(model, _QUOTA_TTL_S)
+                    self._quota_note = _retry_note(exc.response.text)
                     logger.warning("gemini_model_quota model=%s trying_next", model)
                 else:
                     raise
@@ -77,6 +88,11 @@ class GeminiClient:
                 _skip(model, _TIMEOUT_TTL_S)
                 last = exc
                 logger.warning("gemini_model_timeout model=%s trying_next", model)
+        note = getattr(self, "_quota_note", None)
+        if isinstance(last, httpx.HTTPStatusError) and last.response.status_code == 429 or (last is None and note):
+            raise GeminiUnavailable(
+                "Gemini's free quota is used up" + (f"; try again in about {note}." if note else "; try again later.")
+            ) from last
         raise GeminiUnavailable(f"no Gemini model answered (tried {self._models})") from last
 
     def _call(self, model: str, parts: list[dict], max_tokens: int, temperature: float) -> str:

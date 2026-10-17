@@ -573,7 +573,7 @@ class Component extends DCLogic {
       this.analyze(vid,ph.id);}catch(e){this.fail(e,'Photo upload failed');}}}
   async analyze(vid,pid){this.updPhoto(vid,pid,{status:'loading'});
     try{const r=await api.post(this.vpath(vid,'/photos/'+encodeURIComponent(pid)+'/analyze'));
-      this.updPhoto(vid,pid,r.status==='done'?{status:'done',obs:{room:String(r.obs.room||'').slice(0,28),good:(r.obs.good||[]).map(String),bad:(r.obs.bad||[]).map(String)}}:{status:'error'});
+      this.updPhoto(vid,pid,r.status==='done'?{status:'done',obs:{room:String(r.obs.room||'').slice(0,28),good:(r.obs.good||[]).map(String),bad:(r.obs.bad||[]).map(String)}}:{status:'error',reason:r.reason||''});
     }catch(e){this.updPhoto(vid,pid,{status:'error'});}}
   ics(v){const h=this.get(v.home);const d=new Date(v.at);const p=n=>String(n).padStart(2,'0');const loc=d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'T'+p(d.getHours())+p(d.getMinutes())+'00';const now=new Date();const st=now.getUTCFullYear()+p(now.getUTCMonth()+1)+p(now.getUTCDate())+'T'+p(now.getUTCHours())+p(now.getUTCMinutes())+'00Z';
     const txt=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Homerun//Viewing//EN','BEGIN:VEVENT','UID:'+v.id+'-'+h.id+'@homerun','DTSTAMP:'+st,'DTSTART:'+loc,'DURATION:PT45M','SUMMARY:Viewing - '+h.name,'LOCATION:'+h.name+'\, Singapore','DESCRIPTION:Listing '+h.id+' ('+({confirmed:'agent confirmed',requested:'awaiting agent',self:'added by you'}[v.st])+').','END:VEVENT','END:VCALENDAR'].join('\r\n');
@@ -795,7 +795,7 @@ class Component extends DCLogic {
       const photos=ps.map(p=>{const o=p.obs;if(o){o.good.forEach(t=>good.push({text:t,room:o.room||'photo'}));o.bad.forEach(t=>bad.push({text:t,room:o.room||'photo'}));}
         return {url:p.url,alt:o&&o.room?o.room:'Viewing photo',loading:p.status==='loading',err:p.status==='error',filter:p.status==='loading'?'blur(3px) saturate(.7)':'none',room:o?o.room:'',roomShow:o&&o.room?'block':'none',
           obs:o?[...o.good.map(t=>({text:t,mark:'+',bg:'var(--g-mint)'})),...o.bad.map(t=>({text:t,mark:'−',bg:'var(--g-rose)'}))]:[],
-          retry:()=>this.analyze(selV.id,p.id),remove:()=>{this.setV(vs=>vs.map(v=>v.id!==selV.id?v:{...v,photos:(v.photos||[]).filter(x=>x.id!==p.id)}));api.del(this.vpath(selV.id,'/photos/'+encodeURIComponent(p.id))).catch(()=>{});}};});
+          errText:p.reason||'Couldn’t read this one.',retry:()=>this.analyze(selV.id,p.id),remove:()=>{this.setV(vs=>vs.map(v=>v.id!==selV.id?v:{...v,photos:(v.photos||[]).filter(x=>x.id!==p.id)}));api.del(this.vpath(selV.id,'/photos/'+encodeURIComponent(p.id))).catch(()=>{});}};});
       nt={noSel:false,chk:prog(selV).txt,name:h.name,when:fmtWhen(selV.at).toLowerCase(),photos,noPhotos:!photos.length,photoN:photos.length,good,bad,goodN:good.length,badN:bad.length,hasObs:good.length+bad.length>0,
         dzBg:s.drag2?'color-mix(in oklch,var(--lav) 25%,transparent)':'var(--soft)',dzBorder:s.drag2?'var(--acc)':'var(--line)',
         onFiles:e=>{const fl=e.target.files;this.addPhotos(selV.id,fl);e.target.value='';},onOver:e=>{e.preventDefault();if(!s.drag2)this.setState({drag2:true});},onLeave:()=>this.setState({drag2:false}),
